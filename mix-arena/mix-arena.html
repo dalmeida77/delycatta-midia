@@ -1,0 +1,1050 @@
+<title>Mix Arena · Simulador de Eventos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style id="tokens">
+/* Layout: barra superior com abas; simulador em duas colunas (formulário | leitura ao vivo), apresentação em lâminas 16:9 empilhadas. */
+:root{
+  --bg:#ECEEF2; --surface:#FFFFFF; --surface-2:#F5F6F9; --ink:#14161B; --muted:#5A6170; --line:#D3D8E1;
+  --accent:#D1005F; --accent-ink:#FFFFFF; --accent-soft:#FCE3EE; --amber:#B97800; --amber-soft:#FFF1D2;
+  --good:#18834A; --good-soft:#DDF3E6; --warn:#A86A00; --warn-soft:#FFF0D1; --bad:#C2321F; --bad-soft:#FBE2DD;
+  --chart-1:#D1005F; --chart-2:#2F6FDB; --chart-3:#B97800; --grid:#E2E6EC;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1116; --surface:#171A21; --surface-2:#1D212A; --ink:#ECEEF3; --muted:#9AA2B1; --line:#2B303B;
+  --accent:#FF4F98; --accent-ink:#1A0610; --accent-soft:#3A1527; --amber:#F2B33D; --amber-soft:#3A2C0E;
+  --good:#45C97E; --good-soft:#12301F; --warn:#F2B33D; --warn-soft:#3A2C0E; --bad:#FF7461; --bad-soft:#3D1712;
+  --chart-1:#FF4F98; --chart-2:#6EA1FF; --chart-3:#F2B33D; --grid:#262B35; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1116; --surface:#171A21; --surface-2:#1D212A; --ink:#ECEEF3; --muted:#9AA2B1; --line:#2B303B;
+  --accent:#FF4F98; --accent-ink:#1A0610; --accent-soft:#3A1527; --amber:#F2B33D; --amber-soft:#3A2C0E;
+  --good:#45C97E; --good-soft:#12301F; --warn:#F2B33D; --warn-soft:#3A2C0E; --bad:#FF7461; --bad-soft:#3D1712;
+  --chart-1:#FF4F98; --chart-2:#6EA1FF; --chart-3:#F2B33D; --grid:#262B35; color-scheme:dark}
+</style>
+<style id="base">
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+h1,h2,h3,h4{font-family:var(--f-display);font-stretch:112%;line-height:1.1;margin:0;text-wrap:balance}
+.num,td.n,th.n{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* topo */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-family:var(--f-display);font-stretch:125%;font-weight:900;font-size:20px;letter-spacing:-.01em}
+.brand b i{font-style:normal;color:var(--accent)}
+.brand span{font-family:var(--f-mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+nav.tabs{display:flex;gap:2px;flex-wrap:wrap;margin-left:auto}
+nav.tabs a{padding:7px 12px;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:500;font-size:14px}
+nav.tabs a:hover{color:var(--ink);background:var(--surface-2)}
+nav.tabs a[aria-current="page"]{color:var(--ink);background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent)}
+.store-pill{font-family:var(--f-mono);font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.store-pill.on{border-color:var(--good);color:var(--good)}
+@media (max-width:720px){.top{position:static}.brand span{display:none}nav.tabs{order:3;width:100%;margin-left:0;flex-wrap:nowrap;overflow-x:auto}nav.tabs a{white-space:nowrap}.top-in{gap:10px;justify-content:space-between}}
+
+main{max-width:1280px;margin:0 auto;padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+.page-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap}
+.page-head h1{font-size:clamp(26px,4vw,38px);font-weight:850}
+.page-head p{margin:6px 0 0;color:var(--muted);max-width:68ch}
+
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500;font-size:14px;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--surface-2)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;min-width:0}
+.panel h2{font-size:18px;font-weight:750;margin-bottom:4px}
+.panel .sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+
+/* form */
+.grid-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px 14px}
+.field{display:grid;gap:4px;min-width:0}
+.field.wide{grid-column:1/-1}
+.field label{font-size:12px;font-weight:600;color:var(--muted)}
+.field .hint{font-size:11.5px;color:var(--muted)}
+input,select,textarea{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;background:var(--surface)}
+textarea{resize:vertical;min-height:64px}
+.money{position:relative}
+.money::before{content:"R$";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);pointer-events:none}
+.money input{padding-left:32px;font-variant-numeric:tabular-nums}
+.fs{border:0;padding:0;margin:0;display:grid;gap:12px}
+.fs + .fs{border-top:1px dashed var(--line);padding-top:18px;margin-top:18px}
+.fs legend{font-family:var(--f-display);font-stretch:112%;font-weight:750;font-size:15px;padding:0;margin-bottom:10px;display:flex;gap:8px;align-items:center}
+.fs legend small{font-family:var(--f-mono);font-weight:400;font-size:11px;color:var(--muted);letter-spacing:.06em}
+
+/* simulador */
+.sim-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+.sticky{position:sticky;top:calc(env(safe-area-inset-top,0px) + 74px);display:grid;gap:14px}
+@media (max-width:960px){.sim-layout{grid-template-columns:1fr}.sticky{position:static}}
+.verdict{border-radius:var(--r);padding:18px 20px;display:grid;gap:6px;border:1px solid var(--line)}
+.verdict.good{background:var(--good-soft);border-color:var(--good)}
+.verdict.warn{background:var(--warn-soft);border-color:var(--warn)}
+.verdict.bad{background:var(--bad-soft);border-color:var(--bad)}
+.verdict .tag{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+.verdict.good .tag{color:var(--good)}.verdict.warn .tag{color:var(--warn)}.verdict.bad .tag{color:var(--bad)}
+.verdict h3{font-size:22px;font-weight:800}
+.verdict p{margin:0;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px;min-width:0}
+.kpi .l{font-size:12px;color:var(--muted);font-weight:500}
+.kpi .v{font-family:var(--f-display);font-stretch:105%;font-weight:800;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.15}
+.kpi .s{font-size:12px;color:var(--muted)}
+.kpi.hl{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.meter{height:10px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);position:relative;overflow:hidden}
+.meter span{position:absolute;top:0;bottom:0;left:0}
+.meter-legend{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);font-family:var(--f-mono);flex-wrap:wrap;gap:6px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr.sel td{background:var(--accent-soft)}
+.tbl{overflow-x:auto}
+.factor-list{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.factor-list li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+.factor-list li b{font-weight:600;font-size:13.5px}
+.factor-list li .x{font-family:var(--f-mono);font-size:13px;font-weight:500;text-align:right}
+.factor-list li .x.up{color:var(--good)}.factor-list li .x.down{color:var(--bad)}
+.factor-list li small{grid-column:1/-1;color:var(--muted);font-size:12px}
+
+.chip{display:inline-flex;align-items:center;gap:4px;font-family:var(--f-mono);font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.good{color:var(--good);border-color:var(--good);background:var(--good-soft)}
+.chip.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+.chip.bad{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.chip.acc{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+
+.note{font-size:13px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.note.warn{background:var(--warn-soft);border-color:var(--warn);color:var(--ink)}
+.artist-match{display:grid;gap:8px;padding:12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);font-size:13.5px}
+.ai-box{display:grid;gap:10px;padding:14px;border-radius:8px;border:1px dashed var(--accent);background:var(--accent-soft)}
+.ai-box h4{font-size:14px}
+.ai-box p{margin:0;font-size:13px}
+
+/* painel */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.sim-list{display:grid;gap:10px}
+.sim-card{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,.8fr)) auto;gap:14px;align-items:center;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.sim-card h3{font-size:16px;font-weight:750}
+.sim-card .meta{font-size:12.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:3px}
+.sim-card .c{display:grid;gap:1px;min-width:0}
+.sim-card .c span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.sim-card .c b{font-variant-numeric:tabular-nums;font-size:15px}
+@media (max-width:900px){.sim-card{grid-template-columns:repeat(2,minmax(0,1fr))}.sim-card > :first-child,.sim-card > :last-child{grid-column:1/-1}}
+.inline-form{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding-top:12px;border-top:1px dashed var(--line);align-items:end}
+.empty{text-align:center;padding:40px 20px;display:grid;gap:10px;justify-items:center;color:var(--muted)}
+.empty h3{color:var(--ink);font-size:20px}
+
+/* artistas */
+.art-grid{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.art-grid{grid-template-columns:1fr}}
+.art-list{display:grid;gap:6px}
+.art-item{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;text-align:left;width:100%}
+.art-item:hover{border-color:var(--muted)}
+.art-item.on{border-color:var(--accent);background:var(--accent-soft)}
+.art-item b{display:block;font-size:14px}
+.art-item small{color:var(--muted);font-size:12px}
+.hist-table input,.hist-table select{padding:5px 7px;font-size:13px;min-width:70px}
+
+/* apresentação */
+.deck{display:grid;gap:22px}
+.slide{aspect-ratio:16/9;max-width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:clamp(16px,3.2vw,44px);display:grid;grid-template-rows:auto 1fr auto;gap:clamp(8px,1.6vw,20px);overflow:hidden;container-type:inline-size;position:relative}
+.slide .s-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:var(--f-mono);font-size:clamp(9px,1.3cqi,13px);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.slide .s-top b{color:var(--accent);font-weight:500}
+.slide h2{font-size:clamp(18px,3.6cqi,42px);font-weight:850}
+.slide .s-body{min-height:0;display:grid;gap:clamp(8px,1.6cqi,20px);align-content:start;font-size:clamp(11px,1.55cqi,17px)}
+.slide .s-foot{font-size:clamp(9px,1.15cqi,12px);color:var(--muted)}
+.slide.cover{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.slide.cover .s-top{color:color-mix(in srgb,var(--bg) 65%,transparent)}
+.slide.cover h1{font-size:clamp(28px,7.4cqi,88px);font-stretch:125%;font-weight:900;letter-spacing:-.01em;line-height:.95}
+.slide.cover .lede{font-size:clamp(12px,2cqi,22px);opacity:.8}
+.slide.cover .s-foot{color:color-mix(in srgb,var(--bg) 60%,transparent)}
+.cover-stage{position:absolute;inset:auto -10% -45% auto;width:70%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,var(--accent) 0%,transparent 62%);opacity:.45;pointer-events:none}
+.s-cols{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:clamp(10px,2cqi,28px);min-height:0}
+.s-stat{display:grid;gap:2px;border-top:2px solid var(--line);padding-top:clamp(6px,1cqi,12px)}
+.s-stat.acc{border-top-color:var(--accent)}
+.s-stat .v{font-family:var(--f-display);font-stretch:110%;font-weight:850;font-size:clamp(18px,4cqi,46px);line-height:1;font-variant-numeric:tabular-nums}
+.s-stat .l{color:var(--muted);font-size:clamp(10px,1.3cqi,14px)}
+.slide table{font-size:clamp(10px,1.35cqi,15px)}
+.slide th{font-size:clamp(8px,1.05cqi,12px)}
+.slide td{padding:clamp(3px,.7cqi,8px) 8px}
+.slide .factor-list li{padding:clamp(4px,.8cqi,9px) 10px}
+.slide .factor-list li b{font-size:clamp(10px,1.35cqi,15px)}
+.slide .factor-list li small{font-size:clamp(9px,1.1cqi,12.5px)}
+.slide svg{width:100%;height:auto;max-height:100%;display:block}
+.just{margin:0;color:var(--muted);font-size:clamp(10px,1.3cqi,14.5px);line-height:1.45}
+.deck-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+
+svg text{font-family:var(--f-mono);fill:var(--muted)}
+svg .lbl-ink{fill:var(--ink)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+@media (prefers-reduced-motion:no-preference){.btn,.art-item,nav.tabs a{transition:background .15s,border-color .15s,color .15s}}
+</style>
+
+<header class="top"><div class="top-in">
+  <div class="brand"><b>MIX<i>/</i>ARENA</b><span>Gestão &amp; simulação de eventos</span></div>
+  <nav class="tabs" aria-label="Seções">
+    <a href="#painel" data-view="painel">Painel</a>
+    <a href="#simulador" data-view="simulador">Simulador</a>
+    <a href="#artistas" data-view="artistas">Artistas</a>
+    <a href="#apresentacao" data-view="apresentacao">Apresentação</a>
+    <a href="#casa" data-view="casa">Casa &amp; parâmetros</a>
+  </nav>
+  <span class="store-pill" id="storePill" title="Onde as simulações estão sendo salvas">conectando…</span>
+</div></header>
+<main id="app"><div class="empty"><h3>Carregando o simulador…</h3><p>Conectando ao armazenamento da Mix Arena.</p></div></main>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+"use strict";
+/* ================= utilidades ================= */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isFinite(n) ? n : 0; };
+const brl = v => (isFinite(v)?v:0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
+const brl2 = v => (isFinite(v)?v:0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2,maximumFractionDigits:2});
+const int = v => Math.round(isFinite(v)?v:0).toLocaleString("pt-BR");
+const pct = (v,d=0) => ((isFinite(v)?v:0)*100).toLocaleString("pt-BR",{maximumFractionDigits:d,minimumFractionDigits:d})+"%";
+const mult = v => "×" + v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const slug = s => String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const norm = s => slug(s).replace(/-/g," ");
+const round5 = v => Math.max(5, Math.round(v/5)*5);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const fmtDate = d => { if(!d) return "sem data"; const [y,m,dd] = d.split("-"); return dd ? `${dd}/${m}/${y}` : `${m}/${y}`; };
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,2600); }
+
+/* ================= parâmetros padrão ================= */
+const GENEROS_PADRAO = {
+  "Sertanejo":       {aceitacao:85, preco:80, elasticidade:1.1, bar:70},
+  "Funk":            {aceitacao:75, preco:50, elasticidade:1.4, bar:55},
+  "Pagode / Samba":  {aceitacao:80, preco:60, elasticidade:1.2, bar:65},
+  "Forró / Piseiro": {aceitacao:70, preco:50, elasticidade:1.3, bar:55},
+  "Eletrônica":      {aceitacao:55, preco:70, elasticidade:1.2, bar:75},
+  "Rap / Trap":      {aceitacao:60, preco:60, elasticidade:1.3, bar:45},
+  "Rock":            {aceitacao:45, preco:70, elasticidade:1.1, bar:60},
+  "Pop":             {aceitacao:55, preco:80, elasticidade:1.1, bar:50},
+  "Axé / Pagodão":   {aceitacao:55, preco:60, elasticidade:1.3, bar:60},
+  "Brega / Arrocha": {aceitacao:60, preco:45, elasticidade:1.4, bar:55},
+  "Gospel":          {aceitacao:50, preco:50, elasticidade:1.4, bar:20},
+  "MPB":             {aceitacao:45, preco:90, elasticidade:0.9, bar:45},
+  "Reggae":          {aceitacao:40, preco:50, elasticidade:1.3, bar:50},
+  "Outro":           {aceitacao:50, preco:60, elasticidade:1.2, bar:50}
+};
+const CONFIG_PADRAO = { nome:"Mix Arena", cidade:"", uf:"", capacidade:1500, custoCasa:8000, ecad:10, impostos:8, gateway:3.5, meia:35, metaLucro:15, generos:GENEROS_PADRAO };
+const NIVEIS = {
+  local:{nome:"Local", preco:0.6}, regional:{nome:"Regional", preco:0.8}, estadual:{nome:"Estadual", preco:1.0},
+  nacional:{nome:"Nacional", preco:1.4}, nacional_top:{nome:"Nacional (topo das paradas)", preco:2.0}
+};
+const LOTES = [
+  {nome:"Promocional", share:.15, m:.75, abre:45, fecha:36},
+  {nome:"1º lote",     share:.35, m:.85, abre:35, fecha:22},
+  {nome:"2º lote",     share:.30, m:1.00, abre:21, fecha:11},
+  {nome:"3º lote",     share:.15, m:1.15, abre:10, fecha:1},
+  {nome:"Portaria",    share:.05, m:1.30, abre:0,  fecha:0}
+];
+const DIAS = [{n:"domingo",f:.85},{n:"segunda",f:.5},{n:"terça",f:.5},{n:"quarta",f:.6},{n:"quinta",f:.75},{n:"sexta",f:1},{n:"sábado",f:1.05}];
+const MESES = [.9,.9,.95,1,1,1.05,.95,1,1,1,1,1.05];
+const MESES_N = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const CHECKPOINTS = [{d:30,p:.20},{d:21,p:.35},{d:14,p:.50},{d:7,p:.70},{d:1,p:.90},{d:0,p:1}];
+
+function entradaExemplo(){
+  const d = new Date(); d.setDate(d.getDate()+45); while(d.getDay()!==6) d.setDate(d.getDate()+1);
+  return { evento:"", data:d.toISOString().slice(0,10), artista:"", genero:"Sertanejo", nivel:"estadual", nota:4,
+    feriado:false, concorrencia:"nenhuma", ultimaRegiaoMeses:"",
+    cache:22000, logistica:3000, rider:1500, estrutura:7000, seguranca:0, staff:3000, marketing:4000, abertura:1500, outros:0,
+    cortContrato:20, pctArtista:0, precoManual:"", obs:"" };
+}
+
+/* ================= armazenamento ================= */
+const LS = {
+  get(k){ try{ return JSON.parse(localStorage.getItem("mixarena:"+k)||"null"); }catch{ return null; } },
+  set(k,v){ try{ localStorage.setItem("mixarena:"+k, JSON.stringify(v)); }catch{} }
+};
+const Store = {
+  db:null, mode:"local", _cbs:{},
+  async init(){
+    if(!(window.claude && typeof window.claude.use === "function")) return;
+    try{ const db = await window.claude.use("db"); if(db){ this.db = db; this.mode = "nuvem"; } }catch{}
+  },
+  watch(col, cb){
+    if(this.db){
+      let done=false; const timer=setTimeout(()=>{ if(!done){ done=true; cb(LS.get(col)||[], true); } },10000);
+      this.db.collection(col).onSnapshot(s=>{ done=true; clearTimeout(timer); const rows=s.docs.map(d=>({...d.data(), id:d.id})); LS.set(col, rows); cb(rows); },
+        ()=>{ if(!done){ done=true; clearTimeout(timer); } cb(LS.get(col)||[], true); });
+    } else { this._cbs[col] = cb; cb(LS.get(col)||[]); }
+  },
+  async put(col, id, data){
+    const clean = JSON.parse(JSON.stringify({...data, id:undefined}));
+    if(this.db){ await this.db.collection(col).doc(id).set(clean); }
+    else { const rows = (LS.get(col)||[]).filter(r=>r.id!==id); rows.push({...clean, id}); LS.set(col, rows); this._cbs[col] && this._cbs[col](rows); }
+  },
+  async del(col, id){
+    if(this.db){ await this.db.collection(col).doc(id).delete(); }
+    else { const rows = (LS.get(col)||[]).filter(r=>r.id!==id); LS.set(col, rows); this._cbs[col] && this._cbs[col](rows); }
+  }
+};
+
+/* ================= estado ================= */
+const State = {
+  simulacoes:[], artistas:[], config:{...CONFIG_PADRAO}, view:"painel",
+  form: entradaExemplo(), editId:null, deckId:null, artSel:null, ai:null, aiBusy:false,
+  sample:null, downloads:null, confirmDel:null, realOpen:null, loaded:{simulacoes:false,artistas:false,config:false}
+};
+function cfg(){ const c = {...CONFIG_PADRAO, ...State.config}; c.generos = {...GENEROS_PADRAO, ...(State.config.generos||{})}; return c; }
+function artistaPorNome(nome){ const k = slug(nome); if(!k) return null; return State.artistas.find(a=>a.id===k) || State.artistas.find(a=>slug(a.nome)===k) || null; }
+
+/* ================= motor de simulação ================= */
+function calibracao(genero){
+  const reais = State.simulacoes.filter(s=>s.real && num(s.real.pagantes)>0 && s.resultado && s.resultado.previsto>0);
+  const ratio = arr => arr.reduce((a,s)=>a + num(s.real.pagantes)/s.resultado.previsto,0)/arr.length;
+  const g = reais.filter(s=>s.entrada && s.entrada.genero===genero);
+  if(g.length){ const r = ratio(g), w = g.length/(g.length+3); return {f:clamp(1+(r-1)*w,.6,1.4), n:g.length, escopo:"gênero"}; }
+  if(reais.length){ const r = ratio(reais), w = reais.length/(reais.length+6); return {f:clamp(1+(r-1)*w,.6,1.4), n:reais.length, escopo:"geral"}; }
+  return {f:1, n:0, escopo:"nenhum"};
+}
+
+function simular(e, art, C){
+  const G = C.generos[e.genero] || C.generos["Outro"];
+  const cap = Math.max(50, num(C.capacidade));
+  const nivel = NIVEIS[e.nivel] || NIVEIS.estadual;
+  const nota = clamp(num(e.nota)||3,1,5);
+  const el = clamp(num(G.elasticidade)||1.2,.5,2.5);
+  const meia = clamp(num(C.meia),0,100)/100;
+  const deduc = (num(C.ecad)+num(C.impostos)+num(C.gateway))/100;
+  const pctArt = clamp(num(e.pctArtista),0,90)/100;
+  const fatores = [];
+
+  /* custos */
+  const segSugerida = Math.ceil(cap*0.8/100)*200 + Math.ceil(cap*0.8/250)*250;
+  const seg = num(e.seguranca) > 0 ? num(e.seguranca) : segSugerida;
+  const custos = [
+    ["Cachê artístico", num(e.cache)], ["Logística do artista", num(e.logistica)], ["Rider técnico e camarim", num(e.rider)],
+    ["Estrutura técnica (som, luz, palco)", num(e.estrutura)], [num(e.seguranca)>0?"Segurança e brigada":"Segurança e brigada (sugerido)", seg],
+    ["Staff, limpeza e operação", num(e.staff)], ["Marketing e tráfego pago", num(e.marketing)], ["Abertura / DJs locais", num(e.abertura)],
+    ["Custos operacionais da casa", num(C.custoCasa)], ["Outros", num(e.outros)]
+  ].filter(c=>c[1]>0);
+  const custoTotal = custos.reduce((a,c)=>a+c[1],0);
+
+  /* preço de referência */
+  const hist = ((art && art.historico)||[]).filter(h=>num(h.pagantes)>0);
+  let pRef = num(G.preco) * nivel.preco, pFonte = `preço-base do gênero (${brl(num(G.preco))}) × nível ${nivel.nome} (${mult(nivel.preco)})`;
+  const hp = hist.filter(h=>num(h.ingresso)>0);
+  if(hp.length){ const avg = hp.reduce((a,h)=>a+num(h.ingresso),0)/hp.length; pRef = .5*avg + .5*pRef; pFonte += ` combinado 50/50 com o ingresso médio praticado pelo artista (${brl(avg)})`; }
+  pRef = round5(pRef);
+
+  /* demanda base */
+  const capBase = cap * num(G.aceitacao)/100 * (0.35 + 0.15*nota);
+  let base = capBase, histBase = null, pesoHist = 0;
+  const cidade = norm(C.cidade), uf = norm(C.uf), hoje = new Date();
+  const histDet = hist.map(h=>{
+    let meses = 24;
+    if(h.data){ const [y,m] = String(h.data).split("-").map(Number); if(y) meses = Math.max(0,(hoje.getFullYear()-y)*12 + (hoje.getMonth()+1-(m||6))); }
+    const mesmaCidade = cidade && norm(h.cidade)===cidade, mesmoUf = uf && norm(h.uf)===uf;
+    const transf = mesmaCidade ? 1 : mesmoUf ? .85 : .7;
+    const wReg = mesmaCidade ? 1 : mesmoUf ? .75 : .45;
+    const wFonte = h.fonte==="IA" ? .5 : h.fonte==="Mix Arena" ? 1.5 : 1;
+    const w = Math.exp(-meses/24) * wReg * wFonte;
+    const lotado = num(h.capacidade)>0 && num(h.pagantes)/num(h.capacidade) >= .95 ? 1.15 : 1;
+    const precoAdj = num(h.ingresso)>0 ? Math.pow(num(h.ingresso)/pRef, el) : 1;
+    const dNorm = num(h.pagantes) * transf * lotado * precoAdj;
+    return {...h, meses, w, dNorm, transf};
+  });
+  if(histDet.length){
+    pesoHist = histDet.reduce((a,h)=>a+h.w,0);
+    histBase = histDet.reduce((a,h)=>a+h.w*h.dNorm,0)/pesoHist;
+    const alpha = Math.min(.75, pesoHist/(pesoHist+1));
+    base = alpha*histBase + (1-alpha)*capBase;
+    fatores.push({nome:"Histórico do artista", tipo:"base", valor:histBase, txt:`${histDet.length} apresentação(ões) registradas, ponderadas por recência, proximidade de ${C.cidade||"sua região"} e fonte. Peso no modelo: ${pct(alpha)}.`});
+  }
+  fatores.unshift({nome:"Potencial da casa para o gênero", tipo:"base", valor:capBase, txt:`${int(cap)} lugares × aceitação regional de ${e.genero} (${num(G.aceitacao)}%) × força do artista na região (nota ${nota}/5 → ${mult(0.35+0.15*nota)}).`});
+
+  /* multiplicadores */
+  const dt = e.data ? new Date(e.data+"T12:00:00") : null;
+  const addF = (nome, f, txt) => { if(Math.abs(f-1) > .001) fatores.push({nome, tipo:"mult", valor:f, txt}); return f; };
+  let M = 1;
+  if(dt && !isNaN(dt)){
+    const dia = DIAS[dt.getDay()];
+    let fd = dia.f; if(e.feriado) fd = Math.max(fd, 1.05);
+    M *= addF("Dia da semana", fd, e.feriado ? `Véspera de feriado: público se comporta como sábado.` : `Eventos de ${dia.n} rendem ${pct(dia.f)} do público de uma sexta.`);
+    M *= addF("Sazonalidade", MESES[dt.getMonth()], `Mês de ${MESES_N[dt.getMonth()]}: ${MESES[dt.getMonth()]>1?"alta temporada de festas e 13º/férias":"orçamento do público mais apertado (pós-festas, carnaval ou férias)"}.`);
+  }
+  let ult = String(e.ultimaRegiaoMeses).trim()==="" ? null : num(e.ultimaRegiaoMeses);
+  if(ult===null){
+    const reg = histDet.filter(h=> (cidade && norm(h.cidade)===cidade) || (uf && norm(h.uf)===uf));
+    if(reg.length) ult = Math.min(...reg.map(h=>h.meses));
+  }
+  if(ult!==null){
+    const fr = ult<3?.8: ult<6?.9: ult<12?.97: ult>=24?1.05:1;
+    M *= addF("Recência na região", fr, ult<12 ? `Artista se apresentou na região ${ult<1?"no último mês":`há ${int(ult)} meses`}: parte do público já foi ao show.` : `Mais de 2 anos sem show na região: demanda reprimida.`);
+  }
+  const fc = {nenhuma:1, moderada:.92, forte:.8}[e.concorrencia] || 1;
+  M *= addF("Concorrência no período", fc, `Concorrência ${e.concorrencia} na mesma data/semana divide o público.`);
+  const cal = calibracao(e.genero);
+  M *= addF("Calibração Mix Arena", cal.f, `Ajuste aprendido de ${cal.n} evento(s) realizado(s) na casa (${cal.escopo}): diferença média entre público previsto e real.`);
+
+  const D0 = base * M; // demanda ao preço de referência
+
+  /* cortesias */
+  const occ0 = Math.min(1, D0/cap);
+  const pctCort = occ0<.5?.10 : occ0<.75?.07 : occ0<.9?.05 : .03;
+  let cortTotal = Math.max(Math.round(num(e.cortContrato)) + Math.round(cap*.01), Math.round(cap*pctCort));
+  cortTotal = Math.min(cortTotal, Math.round(cap*.15));
+  const capDisp = cap - cortTotal;
+
+  /* curva de preço */
+  const lotesP = p => LOTES.map(l=>({...l, inteira:round5(p*l.m)}));
+  const brutoMedio = p => lotesP(p).reduce((a,l)=>a+l.share*l.inteira,0);
+  const tl = p => brutoMedio(p) * (1 - meia*.5) * (1 - deduc);
+  const demanda = (p,f=1) => D0 * f * Math.pow(pRef/p, el);
+  const cenarios = [{n:"Pessimista",f:.75,w:.3},{n:"Realista",f:1,w:.5},{n:"Otimista",f:1.2,w:.2}];
+  const resultado = (p,f) => { const n = Math.min(capDisp, demanda(p,f)); const rec = n*tl(p); const bruto = rec - custoTotal; return {n, rec, lucro: bruto>0 ? bruto*(1-pctArt) : bruto}; };
+  const esperado = p => cenarios.reduce((a,c)=>a + c.w*resultado(p,c.f).lucro, 0);
+  const curva = [];
+  for(let p = round5(Math.max(10, pRef*.6)); p <= round5(pRef*1.8); p += 5){
+    curva.push({p, E:esperado(p), be:Math.ceil(custoTotal/tl(p)), n:Math.min(capDisp,demanda(p))});
+  }
+  let best = curva[0]; curva.forEach(c=>{ if(c.E > best.E + 1) best = c; });
+  const precoRec = best.p;
+  const precoManual = num(e.precoManual) > 0 ? round5(num(e.precoManual)) : 0;
+  const p = precoManual || precoRec;
+
+  /* indicadores */
+  const tLiq = tl(p);
+  const BE = Math.ceil(custoTotal / tLiq);
+  const meta = BE + Math.ceil((num(C.metaLucro)/100)*custoTotal / (tLiq*(1-pctArt)));
+  const previsto = Math.round(Math.min(capDisp, demanda(p)));
+  const demandaBruta = Math.round(demanda(p));
+  const cobertura = previsto/meta;
+  let status, statusTxt;
+  if(meta > capDisp){ status="bad"; statusTxt="Inviável na capacidade"; }
+  else if(cobertura >= 1.15){ status="good"; statusTxt="Viável"; }
+  else if(cobertura >= .95){ status="warn"; statusTxt="Atenção"; }
+  else { status="bad"; statusTxt="Alto risco"; }
+
+  const cenRes = cenarios.map(c=>{ const r = resultado(p,c.f); return {...c, n:Math.round(r.n), rec:r.rec, lucro:r.lucro, occ:r.n/cap}; });
+  const lotes = lotesP(p).map(l=>({...l, meia:l.inteira/2, qtd:Math.round(l.share*capDisp)}));
+  const dif = capDisp - lotes.reduce((a,l)=>a+l.qtd,0); lotes[lotes.length-1].qtd += dif;
+  const brutoTicket = brutoMedio(p);
+
+  const cortDist = (()=>{
+    const art = Math.min(cortTotal, Math.round(num(e.cortContrato)));
+    const resto = cortTotal - art;
+    const imp = Math.round(resto*.25), parc = Math.round(resto*.35), prom = resto - imp - parc;
+    return [["Artista (contratual)",art],["Imprensa e influenciadores",imp],["Parceiros e patrocinadores",parc],["Promoters e ações de divulgação",prom]].filter(x=>x[1]>0);
+  })();
+  const barCons = (previsto + cortTotal*.8) * num(G.bar);
+  const checkpoints = CHECKPOINTS.map(c=>({...c, qtd:Math.ceil(meta*c.p), data: dt && !isNaN(dt) ? new Date(dt.getTime()-c.d*864e5) : null}));
+
+  return { G, cap, capDisp, nivel, nota, el, custos, custoTotal, segSugerida, pRef, pFonte, precoRec, precoManual, p, tLiq, brutoTicket, meia, deduc,
+    BE, meta, previsto, demandaBruta, cobertura, status, statusTxt, cenarios:cenRes, curva, lotes, cortTotal, pctCort, occ0, cortDist,
+    barCons, checkpoints, fatores, D0, base, capBase, histBase, histDet, cal, pctArt, dt };
+}
+
+/* ================= gráficos (SVG) ================= */
+function chartBreakEven(r){
+  const W=640,H=300,L=64,R=16,T=16,B=40;
+  const maxN = r.cap, maxY = Math.max(r.custoTotal*1.5, r.cap*r.tLiq) ;
+  const x = n => L + (n/maxN)*(W-L-R), y = v => H-B - (v/maxY)*(H-T-B);
+  const ticksY = 4, grid=[];
+  for(let i=0;i<=ticksY;i++){ const v=maxY*i/ticksY; grid.push(`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11">${esc(v>=1000?Math.round(v/1000)+" mil":Math.round(v))}</text>`); }
+  const tx=[]; for(let i=0;i<=5;i++){ const n=Math.round(maxN*i/5); tx.push(`<text x="${x(n)}" y="${H-B+18}" text-anchor="middle" font-size="11">${int(n)}</text>`); }
+  const mk = (n,lab,col,row) => n<=maxN ? `<line x1="${x(n)}" x2="${x(n)}" y1="${T}" y2="${H-B}" stroke="${col}" stroke-dasharray="4 4"/><text x="${Math.min(x(n)+4,W-R-4)}" y="${T+12+row*14}" font-size="11" style="fill:${col}" ${x(n)+90>W?'text-anchor="end"':''}>${esc(lab)} ${int(n)}</text>` : "";
+  const area = `M${x(0)},${y(0)} L${x(maxN)},${y(maxN*r.tLiq)} L${x(maxN)},${y(r.custoTotal)} L${x(0)},${y(r.custoTotal)} Z`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Receita líquida da portaria versus custo total por número de pagantes">
+    ${grid.join("")}${tx.join("")}
+    <text x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle" font-size="11">pagantes</text>
+    <path d="M${x(r.BE)},${y(r.custoTotal)} L${x(maxN)},${y(maxN*r.tLiq)} L${x(maxN)},${y(r.custoTotal)} Z" fill="var(--good)" opacity=".12"/>
+    <line x1="${x(0)}" y1="${y(r.custoTotal)}" x2="${x(maxN)}" y2="${y(r.custoTotal)}" stroke="var(--chart-2)" stroke-width="2.5"/>
+    <line x1="${x(0)}" y1="${y(0)}" x2="${x(maxN)}" y2="${y(maxN*r.tLiq)}" stroke="var(--chart-1)" stroke-width="2.5"/>
+    ${mk(r.BE,"equilíbrio","var(--ink)",0)}${mk(r.meta,"meta","var(--amber)",1)}${mk(r.previsto,"previsto","var(--good)",2)}
+    <circle cx="${x(Math.min(r.BE,maxN))}" cy="${y(Math.min(r.BE,maxN)*r.tLiq)}" r="5" fill="var(--ink)"/>
+    <g font-size="11"><rect x="${L+8}" y="${H-B-44}" width="10" height="3" fill="var(--chart-1)"/><text x="${L+22}" y="${H-B-40}" class="lbl-ink">receita líquida da portaria</text>
+    <rect x="${L+8}" y="${H-B-26}" width="10" height="3" fill="var(--chart-2)"/><text x="${L+22}" y="${H-B-22}" class="lbl-ink">custo total</text></g>
+  </svg>`;
+}
+function chartPreco(r){
+  const W=640,H=260,L=70,R=16,T=20,B=40, c=r.curva; if(c.length<2) return "";
+  const minP=c[0].p, maxP=c[c.length-1].p, ys=c.map(d=>d.E), minY=Math.min(0,...ys), maxY=Math.max(1,...ys);
+  const x=p=>L+(p-minP)/(maxP-minP)*(W-L-R), y=v=>H-B-(v-minY)/(maxY-minY||1)*(H-T-B);
+  const path = c.map((d,i)=>`${i?"L":"M"}${x(d.p).toFixed(1)},${y(d.E).toFixed(1)}`).join(" ");
+  const grid=[]; for(let i=0;i<=4;i++){ const v=minY+(maxY-minY)*i/4; grid.push(`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11">${esc(brl(v).replace(/\s/g," "))}</text>`); }
+  const tx=[]; const step=Math.max(5, round5((maxP-minP)/6)); for(let p=minP;p<=maxP;p+=step) tx.push(`<text x="${x(p)}" y="${H-B+18}" text-anchor="middle" font-size="11">R$${p}</text>`);
+  const best = c.find(d=>d.p===r.precoRec) || c[0];
+  const sel = r.precoManual ? (c.find(d=>d.p===r.precoManual)) : null;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Resultado esperado por preço do ingresso (2º lote, inteira)">
+    ${grid.join("")}${tx.join("")}
+    ${minY<0?`<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)"/>`:""}
+    <path d="${path} L${x(maxP)},${y(minY)} L${x(minP)},${y(minY)} Z" fill="var(--chart-1)" opacity=".10"/>
+    <path d="${path}" fill="none" stroke="var(--chart-1)" stroke-width="2.5"/>
+    <line x1="${x(best.p)}" x2="${x(best.p)}" y1="${T}" y2="${H-B}" stroke="var(--accent)" stroke-dasharray="4 4"/>
+    <circle cx="${x(best.p)}" cy="${y(best.E)}" r="6" fill="var(--accent)"/>
+    <text x="${x(best.p)+(x(best.p)>W-160?-8:8)}" y="${T+10}" font-size="12" class="lbl-ink" ${x(best.p)>W-160?'text-anchor="end"':''}>ideal R$${best.p} → ${esc(brl(best.E))}</text>
+    ${sel?`<circle cx="${x(sel.p)}" cy="${y(sel.E)}" r="5" fill="var(--chart-2)"/><text x="${x(sel.p)+8}" y="${y(sel.E)-8}" font-size="11" style="fill:var(--chart-2)">definido R$${sel.p}</text>`:""}
+    <text x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle" font-size="11">preço da inteira no 2º lote</text>
+  </svg>`;
+}
+function chartCustos(r){
+  const rows = [...r.custos].sort((a,b)=>b[1]-a[1]); const W=640, rowH=26, L=230, R=90, H=rows.length*rowH+8;
+  const max = rows[0] ? rows[0][1] : 1;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Composição do custo total">${rows.map((c,i)=>{
+    const w=(c[1]/max)*(W-L-R), yy=i*rowH+4;
+    return `<text x="${L-10}" y="${yy+15}" text-anchor="end" font-size="12" class="lbl-ink">${esc(c[0])}</text>
+      <rect x="${L}" y="${yy+3}" width="${Math.max(2,w)}" height="${rowH-10}" rx="3" fill="${i===0?"var(--chart-1)":"var(--chart-2)"}" opacity="${i===0?1:.75}"/>
+      <text x="${L+w+8}" y="${yy+15}" font-size="12">${esc(brl(c[1]))} · ${pct(c[1]/r.custoTotal)}</text>`; }).join("")}</svg>`;
+}
+
+/* ================= render: navegação ================= */
+const VIEWS = ["painel","simulador","artistas","apresentacao","casa"];
+function setView(v){ State.view = VIEWS.includes(v) ? v : "painel"; render(); window.scrollTo(0,0); }
+window.addEventListener("hashchange", ()=> setView(location.hash.slice(1)));
+function render(){
+  document.querySelectorAll("nav.tabs a").forEach(a=>{ if(a.dataset.view===State.view) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  const pill = $("#storePill"); pill.textContent = Store.mode==="nuvem" ? "● salvo na nuvem da casa" : "● salvo neste navegador"; pill.classList.toggle("on", Store.mode==="nuvem");
+  pill.title = Store.mode==="nuvem" ? "Simulações gravadas no banco de dados próprio deste sistema, compartilhado com quem tem acesso." : "Sem conexão ao banco compartilhado: dados ficam neste navegador. Use Casa & parâmetros → Backup para exportar.";
+  const app = $("#app");
+  ({painel:renderPainel, simulador:renderSimulador, artistas:renderArtistas, apresentacao:renderApresentacao, casa:renderCasa})[State.view](app);
+}
+
+/* ================= painel ================= */
+function renderPainel(app){
+  const sims = [...State.simulacoes].sort((a,b)=>String(b.atualizadoEm||"").localeCompare(String(a.atualizadoEm||"")));
+  const reais = sims.filter(s=>s.real && num(s.real.pagantes)>0 && s.resultado);
+  const precisao = reais.length ? 1 - reais.reduce((a,s)=>a+Math.abs(num(s.real.pagantes)-s.resultado.previsto)/Math.max(1,num(s.real.pagantes)),0)/reais.length : null;
+  const viaveis = sims.filter(s=>s.resultado && s.resultado.status==="good").length;
+  const C = cfg();
+  app.innerHTML = `
+  <div class="page-head"><div><div class="eyebrow">${esc(C.nome)}${C.cidade?` · ${esc(C.cidade)}${C.uf?"/"+esc(C.uf):""}`:""} · ${int(C.capacidade)} lugares</div><h1>Painel de eventos</h1>
+  <p>Todas as simulações ficam salvas aqui. Abra uma para ajustar, gere a apresentação para a sócios e parceiros, e depois do evento registre o público real: o modelo aprende com os resultados da casa.</p></div>
+  <button class="btn primary" data-act="nova">+ Nova simulação</button></div>
+  ${!C.cidade?`<div class="note warn">Cadastre a cidade e o estado da Mix Arena em <a href="#casa">Casa &amp; parâmetros</a>. O modelo usa a localização para pesar o histórico dos artistas e a aceitação regional.</div>`:""}
+  <div class="kpi-row">
+    <div class="kpi"><span class="l">Simulações salvas</span><span class="v">${int(sims.length)}</span><span class="s">${int(viaveis)} classificadas como viáveis</span></div>
+    <div class="kpi"><span class="l">Eventos realizados</span><span class="v">${int(reais.length)}</span><span class="s">com público real registrado</span></div>
+    <div class="kpi"><span class="l">Precisão do modelo</span><span class="v">${precisao===null?"—":pct(Math.max(0,precisao))}</span><span class="s">${precisao===null?"registre resultados reais para medir":"acerto médio do público previsto"}</span></div>
+    <div class="kpi"><span class="l">Artistas cadastrados</span><span class="v">${int(State.artistas.length)}</span><span class="s">${int(State.artistas.reduce((a,x)=>a+((x.historico||[]).length),0))} shows no histórico</span></div>
+  </div>
+  <section class="panel"><h2>Simulações</h2><p class="sub">Ordenadas pela última alteração.</p>
+  ${!State.loaded.simulacoes?`<div class="empty"><p>Carregando simulações…</p></div>`: sims.length ? `<div class="sim-list">${sims.map(simCard).join("")}</div>` : `<div class="empty"><h3>Nenhuma simulação salva ainda</h3><p>Monte a primeira: informe artista, data e cachê. O simulador calcula ingresso, cortesias e quanto a portaria precisa vender.</p><button class="btn primary" data-act="nova">Criar primeira simulação</button></div>`}
+  </section>`;
+}
+function simCard(s){
+  const r = s.resultado || {}, e = s.entrada || {};
+  const st = s.status==="realizado" ? `<span class="chip acc">realizado</span>` : s.status==="aprovado" ? `<span class="chip good">aprovado</span>` : s.status==="descartado" ? `<span class="chip">descartado</span>` : "";
+  const v = r.status ? `<span class="chip ${r.status}">${esc(r.statusTxt)}</span>` : "";
+  const realP = s.real && num(s.real.pagantes) ? `<div class="c"><span>Público real</span><b>${int(s.real.pagantes)} <small style="color:var(--muted);font-weight:400">${pct(num(s.real.pagantes)/Math.max(1,r.previsto))} do previsto</small></b></div>` : `<div class="c"><span>Previsto</span><b>${int(r.previsto)} pagantes</b></div>`;
+  const conf = State.confirmDel===s.id;
+  return `<article class="sim-card">
+    <div><h3>${esc(e.evento || e.artista || "Sem nome")}</h3><div class="meta">${esc(e.artista||"")} · ${esc(e.genero||"")} · ${fmtDate(e.data)} ${v} ${st}</div></div>
+    <div class="c"><span>Ingresso</span><b>${brl(r.p)}</b></div>
+    <div class="c"><span>Equilíbrio</span><b>${int(r.BE)} pagantes</b></div>
+    <div class="c"><span>Meta mínima</span><b>${int(r.meta)}</b></div>
+    ${realP}
+    <div class="row">${conf ? `<span class="confirm">Excluir de vez? <button class="btn sm danger" data-act="del-ok" data-id="${esc(s.id)}">Excluir</button><button class="btn sm ghost" data-act="del-no">Cancelar</button></span>` : `
+      <button class="btn sm" data-act="abrir" data-id="${esc(s.id)}">Abrir</button>
+      <button class="btn sm" data-act="deck" data-id="${esc(s.id)}">Apresentação</button>
+      <button class="btn sm ghost" data-act="real" data-id="${esc(s.id)}">Resultado real</button>
+      <button class="btn sm ghost" data-act="dup" data-id="${esc(s.id)}">Duplicar</button>
+      <button class="btn sm ghost danger" data-act="del" data-id="${esc(s.id)}" aria-label="Excluir">Excluir</button>`}</div>
+    ${State.realOpen===s.id ? `<form class="inline-form" data-form="real" data-id="${esc(s.id)}">
+      <div class="field"><label for="rp-${esc(s.id)}">Pagantes reais</label><input id="rp-${esc(s.id)}" name="pagantes" type="number" min="0" value="${esc(s.real?.pagantes||"")}" required></div>
+      <div class="field"><label for="rc-${esc(s.id)}">Cortesias usadas</label><input id="rc-${esc(s.id)}" name="cortesias" type="number" min="0" value="${esc(s.real?.cortesias||"")}"></div>
+      <div class="field"><label for="rr-${esc(s.id)}">Receita bruta da portaria</label><div class="money"><input id="rr-${esc(s.id)}" name="receita" type="number" min="0" value="${esc(s.real?.receita||"")}"></div></div>
+      <div class="field"><label for="rb-${esc(s.id)}">Faturamento do bar</label><div class="money"><input id="rb-${esc(s.id)}" name="bar" type="number" min="0" value="${esc(s.real?.bar||"")}"></div></div>
+      <div class="row"><button class="btn primary sm" type="submit">Salvar resultado</button><button class="btn ghost sm" type="button" data-act="real-x">Fechar</button></div>
+    </form>`:""}
+  </article>`;
+}
+
+/* ================= simulador ================= */
+function renderSimulador(app){
+  const e = State.form, C = cfg();
+  const opt = (obj, sel) => Object.keys(obj).map(k=>`<option value="${esc(k)}" ${k===sel?"selected":""}>${esc(obj[k].nome||k)}</option>`).join("");
+  const f = (k,label,type="text",extra="",hint="") => `<div class="field ${extra.includes("wide")?"wide":""}"><label for="f-${k}">${label}</label>${type==="money"?`<div class="money"><input id="f-${k}" data-k="${k}" type="number" min="0" step="100" value="${esc(e[k])}"></div>`:`<input id="f-${k}" data-k="${k}" type="${type}" value="${esc(e[k])}" ${extra.replace("wide","")}>`}${hint?`<span class="hint">${hint}</span>`:""}</div>`;
+  app.innerHTML = `
+  <div class="page-head"><div><div class="eyebrow">${State.editId?"Editando simulação salva":"Nova simulação · valores de exemplo, altere à vontade"}</div><h1>Simulador de portaria</h1>
+  <p>Informe o artista e os custos. O modelo cruza o histórico do artista em outras casas, a aceitação do gênero na região e os resultados reais da Mix Arena para indicar ingresso, cortesias e quantos pagantes a portaria precisa.</p></div>
+  <div class="row"><button class="btn" data-act="limpar">Limpar</button><button class="btn primary" data-act="salvar">${State.editId?"Salvar alterações":"Salvar simulação"}</button></div></div>
+  <div class="sim-layout">
+    <section class="panel">
+      <fieldset class="fs"><legend>Evento <small>DATA DEFINE DIA DA SEMANA E SAZONALIDADE</small></legend>
+        <div class="grid-form">
+          ${f("evento","Nome do evento","text","wide")}
+          ${f("data","Data","date")}
+          <div class="field"><label for="f-concorrencia">Concorrência no período</label><select id="f-concorrencia" data-k="concorrencia">
+            ${[["nenhuma","Nenhuma relevante"],["moderada","Moderada (outro show na cidade)"],["forte","Forte (mesmo gênero / grande evento)"]].map(o=>`<option value="${o[0]}" ${e.concorrencia===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></div>
+          <div class="field"><label for="f-feriado">Véspera de feriado?</label><select id="f-feriado" data-k="feriado"><option value="false" ${!e.feriado?"selected":""}>Não</option><option value="true" ${e.feriado?"selected":""}>Sim</option></select></div>
+        </div></fieldset>
+      <fieldset class="fs"><legend>Artista <small>HISTÓRICO E ACEITAÇÃO REGIONAL</small></legend>
+        <div class="grid-form">
+          <div class="field wide"><label for="f-artista">Nome do artista</label><input id="f-artista" data-k="artista" value="${esc(e.artista)}" list="dl-art" autocomplete="off" placeholder="Digite o nome; artistas já cadastrados aparecem na lista"><datalist id="dl-art">${State.artistas.map(a=>`<option value="${esc(a.nome)}">`).join("")}</datalist></div>
+          <div class="field wide" id="artMatch"></div>
+          <div class="field"><label for="f-genero">Gênero musical</label><select id="f-genero" data-k="genero">${Object.keys(C.generos).map(g=>`<option ${g===e.genero?"selected":""}>${esc(g)}</option>`).join("")}</select></div>
+          <div class="field"><label for="f-nivel">Porte do artista</label><select id="f-nivel" data-k="nivel">${opt(NIVEIS,e.nivel)}</select><span class="hint">Define o preço que o público aceita pagar.</span></div>
+          <div class="field"><label for="f-nota">Aceitação na região (1–5)</label><select id="f-nota" data-k="nota">${[1,2,3,4,5].map(n=>`<option value="${n}" ${num(e.nota)===n?"selected":""}>${n} · ${["baixa","abaixo da média","média","alta","muito alta"][n-1]}</option>`).join("")}</select><span class="hint">Tocou nas rádios/festas locais? Engajamento de seguidores da região?</span></div>
+          ${f("ultimaRegiaoMeses","Meses desde o último show na região","number",'min="0"',"Deixe vazio para usar o histórico cadastrado.")}
+        </div></fieldset>
+      <fieldset class="fs"><legend>Custos do evento <small>TUDO QUE A PORTARIA PRECISA PAGAR</small></legend>
+        <div class="grid-form">
+          ${f("cache","Cachê artístico","money")}
+          ${f("logistica","Logística (transporte, hotel, alimentação)","money")}
+          ${f("rider","Rider técnico e camarim","money")}
+          ${f("estrutura","Estrutura técnica (som, luz, palco, LED)","money")}
+          <div class="field"><label for="f-seguranca">Segurança e brigada</label><div class="money"><input id="f-seguranca" data-k="seguranca" type="number" min="0" step="100" value="${esc(e.seguranca)}"></div><span class="hint" id="segHint"></span></div>
+          ${f("staff","Staff, limpeza e operação","money")}
+          ${f("marketing","Marketing e tráfego pago","money")}
+          ${f("abertura","Abertura / DJs locais","money")}
+          ${f("outros","Outros custos","money")}
+        </div>
+        <p class="hint" style="margin:0;font-size:12px;color:var(--muted)">Somados aos custos operacionais da casa por evento (${brl(num(C.custoCasa))}), definidos em Casa &amp; parâmetros. ECAD, impostos e taxas de cartão são descontados do ingresso.</p>
+      </fieldset>
+      <fieldset class="fs"><legend>Contrato e preço <small>OPCIONAL</small></legend>
+        <div class="grid-form">
+          ${f("cortContrato","Cortesias exigidas pelo artista","number",'min="0"',"Lista de convidados do contrato.")}
+          ${f("pctArtista","% do artista sobre o lucro da portaria","number",'min="0" max="90"',"Bônus após o ponto de equilíbrio (ex.: 20).")}
+          <div class="field"><label for="f-precoManual">Preço definido (inteira, 2º lote)</label><div class="money"><input id="f-precoManual" data-k="precoManual" type="number" min="0" step="5" value="${esc(e.precoManual)}" placeholder="usar o ideal"></div><span class="hint">Vazio = usar o preço ideal calculado.</span></div>
+          <div class="field wide"><label for="f-obs">Observações</label><textarea id="f-obs" data-k="obs">${esc(e.obs)}</textarea></div>
+        </div></fieldset>
+    </section>
+    <aside class="sticky" id="simOut"></aside>
+  </div>`;
+  updateSimOut(); updateArtMatch();
+}
+function updateArtMatch(){
+  const box = $("#artMatch"); if(!box) return;
+  const e = State.form, a = artistaPorNome(e.artista), ai = State.ai;
+  let html = "";
+  if(a){
+    const h = a.historico||[];
+    html += `<div class="artist-match"><div class="row" style="justify-content:space-between"><b>${esc(a.nome)} · cadastrado</b><span class="chip">${h.length} show(s) no histórico</span></div>
+      ${h.length?`<div class="tbl"><table><thead><tr><th>Casa</th><th>Cidade</th><th>Data</th><th class="n">Pagantes</th><th class="n">Ingresso</th><th>Fonte</th></tr></thead><tbody>${h.slice(0,5).map(x=>`<tr><td>${esc(x.casa)}</td><td>${esc(x.cidade)}${x.uf?"/"+esc(x.uf):""}</td><td>${fmtDate(x.data)}</td><td class="n">${int(num(x.pagantes))}${num(x.capacidade)?` / ${int(num(x.capacidade))}`:""}</td><td class="n">${num(x.ingresso)?brl(num(x.ingresso)):"—"}</td><td>${esc(x.fonte||"manual")}</td></tr>`).join("")}</tbody></table></div>`:`<span style="color:var(--muted)">Sem shows registrados. Adicione em Artistas ou pesquise com IA.</span>`}
+      <div class="row"><button class="btn sm" data-act="usar-art">Usar gênero, porte e nota do cadastro</button><a class="btn sm ghost" href="#artistas" data-act="ver-art" data-id="${esc(a.id)}">Editar histórico</a>${State.sample?`<button class="btn sm ghost" data-act="ia" ${State.aiBusy?"disabled":""}>${State.aiBusy?"Pesquisando…":"Atualizar com IA"}</button>`:""}</div></div>`;
+  } else if(e.artista.trim()){
+    html += `<div class="artist-match"><span>Artista ainda não cadastrado. O cálculo usa apenas o potencial do gênero e a nota de aceitação.</span>
+      <div class="row">${State.sample?`<button class="btn sm primary" data-act="ia" ${State.aiBusy?"disabled":""}>${State.aiBusy?"Pesquisando histórico…":"Pesquisar histórico com IA"}</button>`:""}<button class="btn sm" data-act="cad-art">Cadastrar artista</button></div></div>`;
+  }
+  if(ai && slug(ai.consulta)===slug(e.artista)){
+    const d = ai.dados || {};
+    html += `<div class="ai-box"><div class="row" style="justify-content:space-between"><h4>Pesquisa da IA: ${esc(d.nome_normalizado||ai.consulta)}</h4><span class="chip acc">confiança ${esc(d.confianca_geral||"baixa")}</span></div>
+      ${d.encontrado===false?`<p>A IA não encontrou informações confiáveis sobre esse artista. Preencha o histórico manualmente com dados de contratantes e ticketeiras.</p>`:`
+      <p><b>${esc(d.genero||"")}</b>${d.subgenero?` · ${esc(d.subgenero)}`:""}${d.origem?` · origem ${esc(d.origem)}`:""} · porte sugerido <b>${esc((NIVEIS[d.nivel]||{}).nome||d.nivel||"—")}</b> · aceitação na região <b>${esc(d.aceitacao_regiao||"—")}/5</b></p>
+      ${d.justificativa_aceitacao?`<p>${esc(d.justificativa_aceitacao)}</p>`:""}
+      ${d.faixa_cache?`<p>Faixa de cachê de mercado: ${brl(num(d.faixa_cache.min))} a ${brl(num(d.faixa_cache.max))} · ingresso praticado: ${brl(num(d.faixa_ingresso?.min))} a ${brl(num(d.faixa_ingresso?.max))}</p>`:""}
+      ${(d.historico||[]).length?`<div class="tbl"><table><thead><tr><th>Casa / evento</th><th>Cidade</th><th>Data</th><th class="n">Público est.</th><th class="n">Ingresso</th></tr></thead><tbody>${d.historico.map(x=>`<tr><td>${esc(x.casa)}</td><td>${esc(x.cidade)}${x.uf?"/"+esc(x.uf):""}</td><td>${esc(x.data||"")}</td><td class="n">${int(num(x.publico_estimado))}${num(x.capacidade)?` / ${int(num(x.capacidade))}`:""}</td><td class="n">${num(x.ingresso_medio)?brl(num(x.ingresso_medio)):"—"}</td></tr>`).join("")}</tbody></table></div>`:""}
+      ${d.observacoes?`<p>${esc(d.observacoes)}</p>`:""}`}
+      <p style="color:var(--muted)">Estimativa baseada no conhecimento do modelo de IA, que pode estar desatualizado ou impreciso. Shows marcados como "IA" valem metade do peso de um show confirmado.</p>
+      ${d.encontrado===false?"":`<div class="row"><button class="btn sm primary" data-act="ia-salvar">Salvar no cadastro e aplicar</button><button class="btn sm ghost" data-act="ia-x">Descartar</button></div>`}</div>`;
+  } else if(ai && ai.erro && slug(ai.consulta)===slug(e.artista)){
+    html += `<div class="note warn">${esc(ai.erro)}</div>`;
+  }
+  box.innerHTML = html; box.hidden = !html;
+}
+function updateSimOut(){
+  const out = $("#simOut"); if(!out) return;
+  const C = cfg(), r = simular(State.form, artistaPorNome(State.form.artista), C);
+  const sh = $("#segHint"); if(sh) sh.textContent = num(State.form.seguranca)>0 ? "" : `Vazio: sugestão de ${brl(r.segSugerida)} (1 vigilante/100 pessoas + 1 brigadista/250).`;
+  const occ = x => clamp(x/r.cap,0,1)*100;
+  out.innerHTML = `
+    <div class="verdict ${r.status}"><span class="tag">${esc(r.statusTxt)}</span>
+      <h3>Vender ${int(r.meta)} ingressos</h3>
+      <p>Empata com <b>${int(r.BE)} pagantes</b> (${pct(r.BE/r.cap)} da casa). A meta de sucesso mínimo inclui ${num(C.metaLucro)}% de margem sobre o custo. Público previsto: <b>${int(r.previsto)}</b>${r.demandaBruta>r.capDisp?" (demanda acima da capacidade)":""}.</p></div>
+    <div class="panel" style="padding:14px 16px;display:grid;gap:8px">
+      <div class="meter" aria-hidden="true">
+        <span style="width:${occ(r.previsto)}%;background:var(--good);opacity:.35"></span>
+        <span style="width:${occ(r.meta)}%;background:var(--amber);opacity:.5"></span>
+        <span style="width:${occ(r.BE)}%;background:var(--ink);opacity:.8"></span>
+      </div>
+      <div class="meter-legend"><span><i class="dot" style="background:var(--ink)"></i>equilíbrio ${int(r.BE)}</span><span><i class="dot" style="background:var(--amber)"></i>meta ${int(r.meta)}</span><span><i class="dot" style="background:var(--good)"></i>previsto ${int(r.previsto)}</span><span>capacidade ${int(r.cap)}</span></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi hl"><span class="l">Ingresso ideal (inteira, 2º lote)</span><span class="v">${brl(r.p)}</span><span class="s">${r.precoManual?`definido manualmente · ideal ${brl(r.precoRec)}`:`meia ${brl2(r.p/2)} · ticket médio líquido ${brl2(r.tLiq)}`}</span></div>
+      <div class="kpi"><span class="l">Cortesias ideais</span><span class="v">${int(r.cortTotal)}</span><span class="s">${pct(r.cortTotal/r.cap,1)} da capacidade</span></div>
+      <div class="kpi"><span class="l">Custo total</span><span class="v">${brl(r.custoTotal)}</span><span class="s">cachê = ${pct(num(State.form.cache)/Math.max(1,r.custoTotal))} do custo</span></div>
+      <div class="kpi"><span class="l">Resultado previsto da portaria</span><span class="v" style="color:${r.cenarios[1].lucro>=0?"var(--good)":"var(--bad)"}">${brl(r.cenarios[1].lucro)}</span><span class="s">+ bar estimado ${brl(r.barCons)}</span></div>
+    </div>
+    <div class="panel"><h2>Como chegamos no público</h2><p class="sub">Cada fator é aplicado sobre a demanda base.</p>
+      <ul class="factor-list">${r.fatores.map(fa=>`<li><b>${esc(fa.nome)}</b><span class="x ${fa.tipo==="mult"?(fa.valor>1?"up":"down"):""}">${fa.tipo==="mult"?mult(fa.valor):int(fa.valor)+" pess."}</span><small>${esc(fa.txt)}</small></li>`).join("")}</ul></div>
+    <div class="panel"><h2>Lotes sugeridos</h2><p class="sub">Escalonamento que cria urgência sem afastar o público de entrada. ${pct(r.meia)} de meia-entrada estimada.</p>
+      <div class="tbl"><table><thead><tr><th>Lote</th><th class="n">Inteira</th><th class="n">Meia</th><th class="n">Qtd.</th></tr></thead><tbody>
+      ${r.lotes.map(l=>`<tr><td>${esc(l.nome)}</td><td class="n">${brl(l.inteira)}</td><td class="n">${brl2(l.meia)}</td><td class="n">${int(l.qtd)}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="row"><button class="btn primary" data-act="salvar">${State.editId?"Salvar alterações":"Salvar simulação"}</button><button class="btn" data-act="preview-deck">Ver apresentação</button></div>`;
+}
+
+/* ================= artistas ================= */
+function renderArtistas(app){
+  const list = [...State.artistas].sort((a,b)=>String(a.nome).localeCompare(String(b.nome),"pt-BR"));
+  const a = list.find(x=>x.id===State.artSel) || null;
+  const C = cfg();
+  app.innerHTML = `
+  <div class="page-head"><div><div class="eyebrow">Base de conhecimento</div><h1>Artistas e histórico</h1>
+  <p>Registre shows dos artistas em outras casas: público pagante, capacidade e preço. Quanto mais perto da Mix Arena e mais recente o show, mais ele pesa na previsão. Eventos realizados na casa entram aqui automaticamente.</p></div>
+  <button class="btn primary" data-act="art-novo">+ Novo artista</button></div>
+  <div class="art-grid">
+    <div class="art-list">${list.length?list.map(x=>`<button class="art-item ${x.id===State.artSel?"on":""}" data-act="art-sel" data-id="${esc(x.id)}"><span><b>${esc(x.nome)}</b><small>${esc(x.genero||"")} · ${esc((NIVEIS[x.nivel]||{}).nome||"")}</small></span><span class="chip">${(x.historico||[]).length}</span></button>`).join(""):`<div class="note">Nenhum artista cadastrado. Crie um aqui ou digite o nome no simulador e use a pesquisa com IA.</div>`}</div>
+    <section class="panel">${a?artForm(a,C):`<div class="empty"><h3>Selecione um artista</h3><p>ou crie um novo para registrar o histórico de shows.</p></div>`}</section>
+  </div>`;
+}
+function artForm(a,C){
+  const h = a.historico||[];
+  return `<form data-form="art" data-id="${esc(a.id)}" style="display:grid;gap:16px">
+    <div class="grid-form">
+      <div class="field"><label for="a-nome">Nome</label><input id="a-nome" name="nome" value="${esc(a.nome)}" required></div>
+      <div class="field"><label for="a-gen">Gênero</label><select id="a-gen" name="genero">${Object.keys(C.generos).map(g=>`<option ${g===a.genero?"selected":""}>${esc(g)}</option>`).join("")}</select></div>
+      <div class="field"><label for="a-niv">Porte</label><select id="a-niv" name="nivel">${Object.keys(NIVEIS).map(k=>`<option value="${k}" ${k===a.nivel?"selected":""}>${esc(NIVEIS[k].nome)}</option>`).join("")}</select></div>
+      <div class="field"><label for="a-nota">Aceitação na região (1–5)</label><input id="a-nota" name="nota" type="number" min="1" max="5" value="${esc(a.nota||3)}"></div>
+      <div class="field wide"><label for="a-obs">Notas (contato, exigências, observações de público)</label><textarea id="a-obs" name="obs">${esc(a.obs||"")}</textarea></div>
+    </div>
+    <div><h2 style="font-size:16px;margin-bottom:8px">Histórico de shows</h2>
+    <div class="tbl hist-table"><table><thead><tr><th>Casa / evento</th><th>Cidade</th><th>UF</th><th>Mês</th><th class="n">Capacidade</th><th class="n">Pagantes</th><th class="n">Ingresso médio</th><th>Fonte</th><th></th></tr></thead><tbody>
+    ${h.map((x,i)=>`<tr>
+      <td><input aria-label="Casa" name="h${i}_casa" value="${esc(x.casa)}"></td><td><input aria-label="Cidade" name="h${i}_cidade" value="${esc(x.cidade)}"></td>
+      <td><input aria-label="UF" name="h${i}_uf" value="${esc(x.uf)}" maxlength="2" style="min-width:48px;width:56px"></td>
+      <td><input aria-label="Mês" name="h${i}_data" type="month" value="${esc(x.data)}"></td>
+      <td><input aria-label="Capacidade" name="h${i}_capacidade" type="number" min="0" value="${esc(x.capacidade)}"></td>
+      <td><input aria-label="Pagantes" name="h${i}_pagantes" type="number" min="0" value="${esc(x.pagantes)}"></td>
+      <td><input aria-label="Ingresso médio" name="h${i}_ingresso" type="number" min="0" value="${esc(x.ingresso)}"></td>
+      <td><select aria-label="Fonte" name="h${i}_fonte">${["manual","Mix Arena","contratante","ticketeira","IA"].map(o=>`<option ${o===(x.fonte||"manual")?"selected":""}>${o}</option>`).join("")}</select></td>
+      <td><button type="button" class="btn sm ghost danger" data-act="h-del" data-i="${i}" aria-label="Remover linha">✕</button></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn sm" data-act="h-add">+ Adicionar show</button><span class="hint" style="font-size:12px;color:var(--muted)">Fontes confiáveis: borderô do contratante, relatório da ticketeira. "IA" pesa metade.</span></div></div>
+    <div class="row" style="justify-content:space-between"><div class="row"><button class="btn primary" type="submit">Salvar artista</button><button type="button" class="btn" data-act="art-simular">Simular evento com este artista</button></div>
+    ${State.confirmDel===a.id?`<span class="confirm">Excluir artista e histórico? <button type="button" class="btn sm danger" data-act="art-del-ok">Excluir</button><button type="button" class="btn sm ghost" data-act="del-no">Cancelar</button></span>`:`<button type="button" class="btn ghost danger" data-act="art-del">Excluir artista</button>`}</div>
+  </form>`;
+}
+function lerArtForm(form){
+  const fd = new FormData(form), h = [];
+  for(let i=0; fd.has(`h${i}_casa`); i++){
+    h.push({casa:fd.get(`h${i}_casa`), cidade:fd.get(`h${i}_cidade`), uf:String(fd.get(`h${i}_uf`)||"").toUpperCase(), data:fd.get(`h${i}_data`),
+      capacidade:num(fd.get(`h${i}_capacidade`))||"", pagantes:num(fd.get(`h${i}_pagantes`))||"", ingresso:num(fd.get(`h${i}_ingresso`))||"", fonte:fd.get(`h${i}_fonte`)});
+  }
+  return {nome:String(fd.get("nome")||"").trim(), genero:fd.get("genero"), nivel:fd.get("nivel"), nota:clamp(num(fd.get("nota"))||3,1,5), obs:fd.get("obs"), historico:h};
+}
+
+/* ================= apresentação ================= */
+function deckSim(){
+  if(State.deckId==="__form") return {id:null, entrada:State.form};
+  return State.simulacoes.find(s=>s.id===State.deckId) || null;
+}
+function renderApresentacao(app){
+  let s = deckSim();
+  if(!s && State.simulacoes.length){ const last=[...State.simulacoes].sort((a,b)=>String(b.atualizadoEm||"").localeCompare(String(a.atualizadoEm||"")))[0]; State.deckId = last.id; s = last; }
+  if(!s) s = {id:null, entrada:State.form};
+  const C = cfg();
+  const sims = [...State.simulacoes].sort((a,b)=>String(b.atualizadoEm||"").localeCompare(String(a.atualizadoEm||"")));
+  app.innerHTML = `
+  <div class="page-head"><div><div class="eyebrow">Modelo de apresentação</div><h1>Apresentação do evento</h1>
+  <p>Lâminas prontas para reunião com sócios, artista ou patrocinadores. Baixe o arquivo para apresentar em tela cheia ou imprimir em PDF pelo navegador.</p></div></div>
+  <div class="deck-bar">
+    <div class="field" style="min-width:min(100%,320px)"><label for="deckSel">Simulação</label><select id="deckSel">
+      ${State.deckId==="__form"||!State.simulacoes.length?`<option value="__form" selected>Simulação aberta no simulador (não salva)</option>`:""}
+      ${sims.map(x=>`<option value="${esc(x.id)}" ${x.id===State.deckId?"selected":""}>${esc((x.entrada||{}).evento||(x.entrada||{}).artista||"Sem nome")} · ${fmtDate((x.entrada||{}).data)}</option>`).join("")}</select></div>
+    <div class="row"><button class="btn primary" data-act="baixar-deck">Baixar apresentação (.html)</button><button class="btn" data-act="copiar-resumo">Copiar resumo</button></div>
+  </div>
+  <div class="deck">${deckHTML(s, C)}</div>`;
+}
+function deckHTML(s, C){
+  const e = s.entrada, art = artistaPorNome(e.artista), r = simular(e, art, C);
+  const titulo = e.evento || e.artista || "Evento";
+  const top = (n,t) => `<div class="s-top"><span><b>${esc(C.nome)}</b> · ${esc(t)}</span><span>${n} / 8</span></div>`;
+  const foot = txt => `<div class="s-foot">${txt}</div>`;
+  const hist = r.histDet;
+  const sl = [];
+  sl.push(`<section class="slide cover"><div class="cover-stage"></div>${top(1,"Estudo de viabilidade")}
+    <div style="align-self:end;display:grid;gap:12px;position:relative"><div class="lede">${esc(e.artista||"Artista a definir")} · ${esc(e.genero)}</div><h1>${esc(titulo)}</h1>
+    <div class="lede">${e.data?esc(fmtDate(e.data))+" · "+(r.dt?DIAS[r.dt.getDay()].n:""):"data a definir"} · ${esc(C.nome)}${C.cidade?", "+esc(C.cidade):""} · ${int(r.cap)} lugares</div></div>
+    ${foot(`Simulação gerada em ${new Date().toLocaleDateString("pt-BR")} · Parecer: ${esc(r.statusTxt)}`)}</section>`);
+  sl.push(`<section class="slide">${top(2,"Resumo executivo")}<div class="s-body"><h2>A portaria precisa vender ${int(r.meta)} ingressos</h2>
+    <div class="s-cols" style="--cols:4">
+      <div class="s-stat"><span class="v">${brl(r.custoTotal)}</span><span class="l">custo total do evento</span></div>
+      <div class="s-stat acc"><span class="v">${brl(r.p)}</span><span class="l">ingresso ideal (inteira, 2º lote)</span></div>
+      <div class="s-stat"><span class="v">${int(r.BE)}</span><span class="l">pagantes para empatar (${pct(r.BE/r.cap)} da casa)</span></div>
+      <div class="s-stat"><span class="v">${int(r.previsto)}</span><span class="l">pagantes previstos (${pct(r.previsto/r.cap)})</span></div>
+    </div>
+    <div class="s-cols" style="--cols:4">
+      <div class="s-stat"><span class="v">${int(r.meta)}</span><span class="l">meta de sucesso mínimo (+${num(C.metaLucro)}% de margem)</span></div>
+      <div class="s-stat"><span class="v">${int(r.cortTotal)}</span><span class="l">cortesias ideais</span></div>
+      <div class="s-stat"><span class="v" style="color:${r.cenarios[1].lucro>=0?"var(--good)":"var(--bad)"}">${brl(r.cenarios[1].lucro)}</span><span class="l">resultado previsto da portaria</span></div>
+      <div class="s-stat"><span class="v">${brl(r.barCons)}</span><span class="l">consumo de bar estimado (fora da conta)</span></div>
+    </div>
+    <p class="just">Parecer <b>${esc(r.statusTxt)}</b>: o público previsto cobre ${pct(r.cobertura)} da meta. ${r.status==="good"?"Há folga de público sobre a meta; o risco principal é o ritmo de vendas.":r.status==="warn"?"A margem é estreita: acompanhar as metas semanais de venda e ter plano de ação pronto.":"Renegociar cachê, reduzir custos ou rever data antes de fechar."}</p></div>
+    ${foot("Ticket médio líquido considera escalonamento de lotes, "+pct(r.meia)+" de meia-entrada, ECAD, impostos e taxa de cartão.")}</section>`);
+  sl.push(`<section class="slide">${top(3,"Leitura do artista e do público")}<div class="s-body"><h2>Público previsto: ${int(r.previsto)} pagantes</h2>
+    <div class="s-cols" style="--cols:2"><ul class="factor-list">${r.fatores.slice(0,6).map(fa=>`<li><b>${esc(fa.nome)}</b><span class="x ${fa.tipo==="mult"?(fa.valor>1?"up":"down"):""}">${fa.tipo==="mult"?mult(fa.valor):int(fa.valor)}</span><small>${esc(fa.txt)}</small></li>`).join("")}</ul>
+    <div style="display:grid;gap:10px;align-content:start">${hist.length?`<div class="tbl"><table><thead><tr><th>Show</th><th>Local</th><th>Data</th><th class="n">Pagantes</th><th class="n">Ingresso</th></tr></thead><tbody>${hist.slice(0,6).map(x=>`<tr><td>${esc(x.casa)}</td><td>${esc(x.cidade)}${x.uf?"/"+esc(x.uf):""}</td><td>${fmtDate(x.data)}</td><td class="n">${int(num(x.pagantes))}${num(x.capacidade)?" / "+int(num(x.capacidade)):""}</td><td class="n">${num(x.ingresso)?brl(num(x.ingresso)):"—"}</td></tr>`).join("")}</tbody></table></div>`:`<p class="just">Sem histórico registrado do artista. A previsão usa o potencial do gênero na região e a nota de aceitação; registrar shows anteriores aumenta a precisão.</p>`}
+    <p class="just">Gênero ${esc(e.genero)}: aceitação regional de ${num(r.G.aceitacao)}%. Porte ${esc(r.nivel.nome)}, aceitação local ${r.nota}/5. Demanda ao preço de referência: ${int(r.D0)} pessoas; ao preço definido: ${int(r.demandaBruta)}.</p></div></div></div>
+    ${foot("Histórico ponderado por recência (meia-vida ~17 meses), proximidade da Mix Arena e confiabilidade da fonte.")}</section>`);
+  sl.push(`<section class="slide">${top(4,"Estrutura de custos")}<div class="s-body"><h2>${brl(r.custoTotal)} para colocar o show de pé</h2>
+    <div style="max-width:88%">${chartCustos(r)}</div>
+    <p class="just">O cachê representa ${pct(num(e.cache)/Math.max(1,r.custoTotal))} do custo. Cada R$ 1.000 a menos no cachê reduz o ponto de equilíbrio em ${int(1000/r.tLiq)} pagantes.</p></div>
+    ${foot("Custos operacionais da casa por evento e sugestão de segurança calculados a partir da capacidade.")}</section>`);
+  sl.push(`<section class="slide">${top(5,"Precificação")}<div class="s-body"><h2>Ingresso ideal: ${brl(r.p)} (meia ${brl2(r.p/2)})</h2>
+    <div class="s-cols" style="--cols:2"><div>${chartPreco(r)}</div>
+    <div style="display:grid;gap:10px;align-content:start"><div class="tbl"><table><thead><tr><th>Lote</th><th>Vigência</th><th class="n">Inteira</th><th class="n">Meia</th><th class="n">Qtd.</th></tr></thead><tbody>
+    ${r.lotes.map(l=>`<tr><td>${esc(l.nome)}</td><td>${l.abre?`D-${l.abre} a D-${l.fecha}`:"dia do show"}</td><td class="n">${brl(l.inteira)}</td><td class="n">${brl2(l.meia)}</td><td class="n">${int(l.qtd)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="just">Preço de referência ${brl(r.pRef)}: ${esc(r.pFonte)}. O ideal é o preço que maximiza o resultado esperado ponderando cenários pessimista (30%), realista (50%) e otimista (20%), com sensibilidade a preço de ${r.el.toLocaleString("pt-BR")} para o gênero.${r.precoManual?` Preço definido manualmente; o ideal calculado é ${brl(r.precoRec)}.`:""}</p></div></div></div>
+    ${foot("Lote vira quando esgota a quantidade ou na data limite, o que vier primeiro. Meia-entrada conforme Lei 12.933/2013.")}</section>`);
+  sl.push(`<section class="slide">${top(6,"Ponto de equilíbrio")}<div class="s-body"><h2>Empata com ${int(r.BE)} pagantes, sucesso a partir de ${int(r.meta)}</h2>
+    <div class="s-cols" style="--cols:2"><div>${chartBreakEven(r)}</div>
+    <div class="tbl"><table><thead><tr><th>Cenário</th><th class="n">Pagantes</th><th class="n">Ocupação</th><th class="n">Receita líquida</th><th class="n">Resultado</th></tr></thead><tbody>
+    ${r.cenarios.map(c=>`<tr ${c.n==="Realista"?'class="sel"':""}><td>${c.n}</td><td class="n">${int(c.n)}</td><td class="n">${pct(c.occ)}</td><td class="n">${brl(c.rec)}</td><td class="n" style="color:${c.lucro>=0?"var(--good)":"var(--bad)"}">${brl(c.lucro)}</td></tr>`).join("")}</tbody></table>
+    <p class="just" style="margin-top:10px">Ticket médio bruto ${brl2(r.brutoTicket)} → líquido ${brl2(r.tLiq)} após ${pct(r.meia)} de meia e ${pct(r.deduc,1)} de ECAD, impostos e cartão.${r.pctArt?` O artista recebe ${pct(r.pctArt)} do lucro após o equilíbrio.`:""}</p></div></div></div>
+    ${foot("Pessimista = 75% da demanda prevista; otimista = 120%. Cortesias não entram como receita.")}</section>`);
+  sl.push(`<section class="slide">${top(7,"Cortesias")}<div class="s-body"><h2>${int(r.cortTotal)} cortesias (${pct(r.cortTotal/r.cap,1)} da casa)</h2>
+    <div class="s-cols" style="--cols:2"><div class="tbl"><table><thead><tr><th>Destino</th><th class="n">Qtd.</th></tr></thead><tbody>${r.cortDist.map(c=>`<tr><td>${esc(c[0])}</td><td class="n">${int(c[1])}</td></tr>`).join("")}<tr><td><b>Total</b></td><td class="n"><b>${int(r.cortTotal)}</b></td></tr></tbody></table></div>
+    <p class="just">Ocupação esperada sem cortesias: ${pct(r.occ0)}. Regra aplicada: ${r.occ0<.5?"abaixo de 50% de ocupação, até 10% de cortesias para garantir casa com cara de cheia":r.occ0<.75?"entre 50% e 75%, 7% de cortesias para reforçar a percepção de evento cheio":r.occ0<.9?"entre 75% e 90%, 5%: a demanda já enche a casa, cortesia vira ferramenta de relacionamento":"acima de 90%, só 3%: cada cortesia toma o lugar de um pagante"}. Mínimo garantido: lista contratual do artista + 1% para imprensa. Teto de 15% da capacidade. Cortesias consomem no bar: cerca de ${brl(r.cortTotal*.8*num(r.G.bar))} estimados com 80% de comparecimento.</p></div></div>
+    ${foot("Liberar cortesias em ondas: imprensa e influenciadores antes do 2º lote para gerar divulgação; parceiros na semana do show.")}</section>`);
+  sl.push(`<section class="slide">${top(8,"Metas de venda e plano de ação")}<div class="s-body"><h2>Ritmo de vendas para chegar a ${int(r.meta)}</h2>
+    <div class="s-cols" style="--cols:2"><div class="tbl"><table><thead><tr><th>Marco</th><th>Data</th><th class="n">Vendidos (acum.)</th><th class="n">% da meta</th></tr></thead><tbody>
+    ${r.checkpoints.map(c=>`<tr><td>${c.d?`D-${c.d}`:"Dia do show"}</td><td>${c.data?c.data.toLocaleDateString("pt-BR"):"—"}</td><td class="n">${int(c.qtd)}</td><td class="n">${pct(c.p)}</td></tr>`).join("")}</tbody></table></div>
+    <ul class="factor-list">
+      <li><b>Abaixo do marco em D-21</b><small>Reforçar tráfego pago no público do gênero em até 60 km e ativar promoters com lista e comissão.</small></li>
+      <li><b>Abaixo do marco em D-14</b><small>Prorrogar o 1º lote ou criar lote solidário; liberar a primeira onda de cortesias para influenciadores.</small></li>
+      <li><b>Acima do marco em D-14</b><small>Antecipar a virada de lote e reduzir cortesias de parceiros: a demanda está forte.</small></li>
+      <li><b>Abaixo do equilíbrio em D-7</b><small>Ativar combos (ingresso + bebida) e grupos/camarotes; o bar compensa parte da portaria.</small></li>
+    </ul></div></div>
+    ${foot("Curva típica de eventos regionais: cerca de metade das vendas acontece nas duas últimas semanas.")}</section>`);
+  return sl.join("");
+}
+function resumoTexto(s){
+  const C = cfg(), e = s.entrada, r = simular(e, artistaPorNome(e.artista), C);
+  return `${C.nome} · ${e.evento||e.artista} (${fmtDate(e.data)})
+Parecer: ${r.statusTxt}
+Custo total: ${brl(r.custoTotal)}
+Ingresso ideal (inteira 2º lote): ${brl(r.p)} · meia ${brl2(r.p/2)}
+Ponto de equilíbrio: ${int(r.BE)} pagantes (${pct(r.BE/r.cap)} da casa)
+Meta de sucesso mínimo: ${int(r.meta)} pagantes
+Público previsto: ${int(r.previsto)} pagantes
+Cortesias ideais: ${int(r.cortTotal)}
+Resultado previsto da portaria: ${brl(r.cenarios[1].lucro)}
+Lotes: ${r.lotes.map(l=>`${l.nome} ${brl(l.inteira)} (${l.qtd})`).join(" · ")}`;
+}
+
+/* ================= casa & parâmetros ================= */
+function renderCasa(app){
+  const C = cfg();
+  const f = (k,l,t="number",h="") => `<div class="field"><label for="c-${k}">${l}</label><input id="c-${k}" name="${k}" type="${t}" value="${esc(C[k])}" step="any">${h?`<span class="hint">${h}</span>`:""}</div>`;
+  app.innerHTML = `
+  <div class="page-head"><div><div class="eyebrow">Configuração</div><h1>Casa &amp; parâmetros</h1>
+  <p>Dados da Mix Arena e premissas do modelo. Os parâmetros por gênero são pontos de partida: ajuste com a realidade da sua região. Depois de alguns eventos realizados, a calibração automática corrige o restante.</p></div></div>
+  <form class="panel" data-form="casa" style="display:grid;gap:18px">
+    <fieldset class="fs"><legend>A casa</legend><div class="grid-form">
+      ${f("nome","Nome da casa","text")}${f("cidade","Cidade","text")}${f("uf","UF","text")}
+      ${f("capacidade","Capacidade (pessoas)","number","Lotação aprovada no alvará/AVCB.")}
+      ${f("custoCasa","Custos operacionais por evento (R$)","number","Energia, aluguel/rateio, bilheteria, manutenção.")}
+    </div></fieldset>
+    <fieldset class="fs"><legend>Deduções e metas</legend><div class="grid-form">
+      ${f("ecad","ECAD (% da bilheteria)","number","Referência usual: 10% para shows ao vivo.")}
+      ${f("impostos","Impostos (% da receita)","number","Simples Nacional / ISS. Confirme com o contador.")}
+      ${f("gateway","Taxa de cartão/ticketeira (%)","number","Parte paga pela casa; a taxa de conveniência fica com o comprador.")}
+      ${f("meia","Meia-entrada esperada (% das vendas)","number","Lei 12.933/2013: até 40% da carga deve estar disponível em meia.")}
+      ${f("metaLucro","Margem do sucesso mínimo (% sobre o custo)","number","Define a meta acima do ponto de equilíbrio.")}
+    </div></fieldset>
+    <fieldset class="fs"><legend>Parâmetros por gênero na região</legend>
+      <div class="tbl"><table><thead><tr><th>Gênero</th><th class="n">Aceitação regional (%)</th><th class="n">Preço-base inteira (R$)</th><th class="n">Sensibilidade a preço</th><th class="n">Consumo bar/pessoa (R$)</th></tr></thead><tbody>
+      ${Object.entries(C.generos).map(([g,v],i)=>`<tr><td>${esc(g)}<input type="hidden" name="g${i}_nome" value="${esc(g)}"></td>
+        <td class="n"><input aria-label="Aceitação ${esc(g)}" name="g${i}_aceitacao" type="number" min="0" max="100" value="${esc(v.aceitacao)}" style="width:90px"></td>
+        <td class="n"><input aria-label="Preço ${esc(g)}" name="g${i}_preco" type="number" min="0" value="${esc(v.preco)}" style="width:90px"></td>
+        <td class="n"><input aria-label="Sensibilidade ${esc(g)}" name="g${i}_elasticidade" type="number" min="0.3" max="3" step="0.1" value="${esc(v.elasticidade)}" style="width:90px"></td>
+        <td class="n"><input aria-label="Bar ${esc(g)}" name="g${i}_bar" type="number" min="0" value="${esc(v.bar)}" style="width:90px"></td></tr>`).join("")}
+      </tbody></table></div>
+      <p class="hint" style="font-size:12px;color:var(--muted);margin:0">Aceitação: quanto da capacidade um artista médio do gênero (nota 3) costuma levar. Sensibilidade a preço: 1,0 = 10% de aumento no ingresso reduz o público em ~10%; acima de 1 o público é mais sensível.</p>
+    </fieldset>
+    <div class="row"><button class="btn primary" type="submit">Salvar parâmetros</button><button class="btn ghost" type="button" data-act="reset-gen">Restaurar parâmetros de gênero</button></div>
+  </form>
+  <section class="panel"><h2>Backup dos dados</h2><p class="sub">Armazenamento atual: ${Store.mode==="nuvem"?"banco de dados próprio do sistema, compartilhado com a equipe.":"este navegador. Exporte com frequência."}</p>
+    <div class="row"><button class="btn" data-act="exportar">Exportar tudo (.json)</button><label class="btn" for="impFile">Importar backup</label><input id="impFile" type="file" accept="application/json,.json" hidden></div></section>`;
+}
+
+/* ================= ações ================= */
+async function salvarSimulacao(){
+  const e = {...State.form}; const C = cfg(); const art = artistaPorNome(e.artista);
+  if(!e.artista.trim() && !e.evento.trim()){ toast("Informe o nome do artista ou do evento antes de salvar."); return; }
+  const r = simular(e, art, C);
+  const id = State.editId || uid();
+  const old = State.simulacoes.find(s=>s.id===id) || {};
+  const doc = {...old, entrada:e, atualizadoEm:new Date().toISOString(), criadoEm: old.criadoEm || new Date().toISOString(), status: old.status || "simulacao",
+    resultado:{p:r.p, precoRec:r.precoRec, BE:r.BE, meta:r.meta, previsto:r.previsto, custoTotal:r.custoTotal, cortTotal:r.cortTotal, status:r.status, statusTxt:r.statusTxt, lucro:r.cenarios[1].lucro, tLiq:r.tLiq}};
+  try{ await Store.put("simulacoes", id, doc); State.editId = id; toast("Simulação salva."); render(); }
+  catch(err){ toast("Não foi possível salvar: "+(err && err.message || "erro de conexão")+". Tente de novo."); }
+}
+async function pesquisarIA(){
+  const e = State.form, C = cfg(); if(!State.sample || !e.artista.trim()) return;
+  State.aiBusy = true; State.ai = null; updateArtMatch();
+  const prompt = `Você é analista de mercado de shows no Brasil. Uma casa de eventos chamada "${C.nome}"${C.cidade?` em ${C.cidade}${C.uf?"/"+C.uf:""}`:""}, com capacidade de ${C.capacidade} pessoas, avalia contratar o artista "${e.artista}".
+Responda SOMENTE com JSON válido, sem texto fora dele, neste formato:
+{"encontrado":true|false,"nome_normalizado":"","genero":"um destes: ${Object.keys(C.generos).join(" | ")}","subgenero":"","origem":"cidade/UF","nivel":"local|regional|estadual|nacional|nacional_top","aceitacao_regiao":1-5,"justificativa_aceitacao":"1-2 frases sobre a aceitação do artista e do gênero ${C.cidade?`em ${C.cidade}/${C.uf} e arredores`:"na região"}","faixa_cache":{"min":0,"max":0},"faixa_ingresso":{"min":0,"max":0},"historico":[{"casa":"","cidade":"","uf":"","data":"AAAA-MM","capacidade":0,"publico_estimado":0,"ingresso_medio":0,"confianca":"alta|media|baixa"}],"observacoes":"","confianca_geral":"alta|media|baixa"}
+Regras: use apenas o que você realmente sabe; não invente casas nem números. Se não conhecer o artista, retorne "encontrado":false e historico vazio. Inclua no máximo 6 shows, preferindo os mais recentes e em casas de porte semelhante. Valores em reais.`;
+  try{
+    const d = await State.sample.json(prompt, {modelTier:"complex"});
+    State.ai = {consulta:e.artista, dados:d||{}};
+  }catch(err){
+    State.ai = {consulta:e.artista, erro: err && err.code==="not_granted" ? "A pesquisa com IA não foi autorizada neste navegador." : err && err.code==="rate_limited" ? "Muitas pesquisas seguidas. Aguarde um minuto e tente de novo." : "A pesquisa com IA falhou. Tente de novo ou cadastre o histórico manualmente."};
+    if(err && err.code==="not_granted") State.sample = null;
+  }
+  State.aiBusy = false; updateArtMatch();
+}
+async function salvarIA(){
+  const ai = State.ai; if(!ai || !ai.dados) return; const d = ai.dados, C = cfg();
+  const nome = State.form.artista.trim();
+  const id = slug(nome); const old = artistaPorNome(nome) || {};
+  const genero = C.generos[d.genero] ? d.genero : (old.genero || State.form.genero);
+  const nivel = NIVEIS[d.nivel] ? d.nivel : (old.nivel || State.form.nivel);
+  const nota = clamp(Math.round(num(d.aceitacao_regiao))||num(old.nota)||3,1,5);
+  const novos = (d.historico||[]).map(x=>({casa:String(x.casa||""), cidade:String(x.cidade||""), uf:String(x.uf||"").toUpperCase().slice(0,2), data:String(x.data||"").slice(0,7), capacidade:num(x.capacidade)||"", pagantes:num(x.publico_estimado)||"", ingresso:num(x.ingresso_medio)||"", fonte:"IA"}))
+    .filter(x=>x.casa && x.pagantes);
+  const hist = [...(old.historico||[]).filter(h=>h.fonte!=="IA"), ...novos];
+  const obs = [old.obs, d.justificativa_aceitacao ? `IA (${new Date().toLocaleDateString("pt-BR")}): ${d.justificativa_aceitacao}` : ""].filter(Boolean).join("\n");
+  try{
+    await Store.put("artistas", old.id || id, {nome: old.nome || nome, genero, nivel, nota, obs, historico:hist, atualizadoEm:new Date().toISOString()});
+    Object.assign(State.form, {genero, nivel, nota});
+    State.ai = null; toast("Artista salvo com o histórico da pesquisa."); render();
+  }catch{ toast("Não foi possível salvar o artista. Tente de novo."); }
+}
+async function baixar(nome, conteudo, tipo){
+  const blob = new Blob([conteudo], {type:tipo});
+  if(State.downloads){
+    try{ await State.downloads.save({filename:nome, data:blob}); return; }
+    catch(err){ if(err && (err.code==="declined"||err.code==="cancelled")) return; }
+  }
+  try{ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=nome; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500); }
+  catch{ toast("Este visualizador não permite baixar arquivos. Abra o sistema no navegador."); }
+}
+function deckArquivo(s){
+  const C = cfg(); const tokens = $("#tokens").textContent, base = $("#base").textContent;
+  const e = s.entrada;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(C.nome)} · ${esc(e.evento||e.artista||"Evento")}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>${tokens}${base}
+body{margin:0;padding:24px;max-width:1200px;margin-inline:auto}.deck{display:grid;gap:24px}
+@media print{@page{size:A4 landscape;margin:0}body{padding:0;max-width:none}.slide{break-after:page;border:0;border-radius:0;width:100vw;height:100vh;aspect-ratio:auto}.deck{gap:0}}
+</style></head><body><div class="deck">${deckHTML(s, C)}</div></body></html>`;
+}
+
+document.addEventListener("click", async ev => {
+  const t = ev.target.closest("[data-act]"); if(!t) return;
+  const act = t.dataset.act, id = t.dataset.id;
+  const sim = id ? State.simulacoes.find(s=>s.id===id) : null;
+  switch(act){
+    case "nova": State.form = entradaExemplo(); State.editId = null; State.ai = null; location.hash = "simulador"; if(State.view==="simulador") render(); break;
+    case "limpar": State.form = {...entradaExemplo(), evento:"", artista:""}; State.editId = null; State.ai=null; render(); break;
+    case "salvar": salvarSimulacao(); break;
+    case "abrir": if(sim){ State.form = {...entradaExemplo(), ...sim.entrada}; State.editId = sim.id; location.hash = "simulador"; } break;
+    case "dup": if(sim){ State.form = {...entradaExemplo(), ...sim.entrada, evento:((sim.entrada||{}).evento||"")+" (cópia)"}; State.editId = null; location.hash = "simulador"; toast("Cópia aberta no simulador. Salve para manter."); } break;
+    case "deck": if(sim){ State.deckId = sim.id; location.hash = "apresentacao"; } break;
+    case "preview-deck": State.deckId = State.editId || "__form"; location.hash = "apresentacao"; break;
+    case "del": State.confirmDel = id; render(); break;
+    case "del-no": State.confirmDel = null; render(); break;
+    case "del-ok": try{ await Store.del("simulacoes", id); State.confirmDel=null; if(State.editId===id) State.editId=null; toast("Simulação excluída."); render(); }catch{ toast("Não foi possível excluir. Tente de novo."); } break;
+    case "real": State.realOpen = State.realOpen===id ? null : id; render(); break;
+    case "real-x": State.realOpen = null; render(); break;
+    case "usar-art": { const a = artistaPorNome(State.form.artista); if(a){ Object.assign(State.form,{genero:a.genero||State.form.genero, nivel:a.nivel||State.form.nivel, nota:a.nota||State.form.nota}); render(); } break; }
+    case "ver-art": { State.artSel = id; break; }
+    case "cad-art": { const nome = State.form.artista.trim(); if(!nome) break; try{ await Store.put("artistas", slug(nome), {nome, genero:State.form.genero, nivel:State.form.nivel, nota:num(State.form.nota)||3, obs:"", historico:[], atualizadoEm:new Date().toISOString()}); State.artSel = slug(nome); location.hash="artistas"; toast("Artista cadastrado. Adicione o histórico de shows."); }catch{ toast("Não foi possível cadastrar. Tente de novo."); } break; }
+    case "ia": pesquisarIA(); break;
+    case "ia-x": State.ai = null; updateArtMatch(); break;
+    case "ia-salvar": salvarIA(); break;
+    case "art-sel": State.artSel = id; State.confirmDel=null; render(); break;
+    case "art-novo": { const nid = "novo-"+uid(); State.artistas.push({id:nid, nome:"", genero:"Sertanejo", nivel:"regional", nota:3, historico:[], _novo:true}); State.artSel = nid; render(); setTimeout(()=>$("#a-nome")?.focus(),0); break; }
+    case "h-add": case "h-del": {
+      const form = t.closest("form"); const a = State.artistas.find(x=>x.id===form.dataset.id); if(!a) break;
+      const dados = lerArtForm(form); Object.assign(a, dados);
+      if(act==="h-add") a.historico.push({casa:"",cidade:"",uf:"",data:"",capacidade:"",pagantes:"",ingresso:"",fonte:"manual"});
+      else a.historico.splice(num(t.dataset.i),1);
+      render(); break; }
+    case "art-del": { const a = State.artistas.find(x=>x.id===State.artSel); if(a){ State.confirmDel = a.id; render(); } break; }
+    case "art-del-ok": { const a = State.artistas.find(x=>x.id===State.artSel); if(!a) break; try{ if(!a._novo) await Store.del("artistas", a.id); else State.artistas = State.artistas.filter(x=>x!==a); State.artSel=null; State.confirmDel=null; toast("Artista excluído."); render(); }catch{ toast("Não foi possível excluir."); } break; }
+    case "art-simular": { const form = t.closest("form"); const d = lerArtForm(form); State.form = {...entradaExemplo(), artista:d.nome, genero:d.genero, nivel:d.nivel, nota:d.nota}; State.editId=null; location.hash="simulador"; break; }
+    case "baixar-deck": { const s = deckSim() || {entrada:State.form}; const e = s.entrada; await baixar(`apresentacao-${slug(e.evento||e.artista||"evento")}.html`, deckArquivo(s), "text/html"); break; }
+    case "copiar-resumo": { const s = deckSim() || {entrada:State.form}; const txt = resumoTexto(s); try{ await navigator.clipboard.writeText(txt); toast("Resumo copiado."); }catch{ toast("Não foi possível copiar automaticamente."); } break; }
+    case "exportar": await baixar(`mix-arena-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify({versao:1, exportadoEm:new Date().toISOString(), config:State.config, simulacoes:State.simulacoes, artistas:State.artistas.filter(a=>!a._novo)}, null, 2), "application/json"); break;
+    case "reset-gen": try{ await Store.put("config","casa",{...State.config, generos:GENEROS_PADRAO}); toast("Parâmetros de gênero restaurados."); render(); }catch{ toast("Não foi possível salvar."); } break;
+  }
+});
+document.addEventListener("input", ev => {
+  const k = ev.target.dataset && ev.target.dataset.k; if(!k) return;
+  let v = ev.target.value; if(k==="feriado") v = v==="true";
+  State.form[k] = v;
+  if(k==="artista") updateArtMatch();
+  updateSimOut();
+});
+document.addEventListener("change", async ev => {
+  if(ev.target.id==="deckSel"){ State.deckId = ev.target.value; render(); }
+  if(ev.target.id==="impFile" && ev.target.files[0]){
+    try{
+      const d = JSON.parse(await ev.target.files[0].text());
+      if(!d || !Array.isArray(d.simulacoes)) throw new Error("formato");
+      for(const s of d.simulacoes){ if(s && s.id) await Store.put("simulacoes", String(s.id), s); }
+      for(const a of (d.artistas||[])){ if(a && a.id) await Store.put("artistas", String(a.id), a); }
+      if(d.config) await Store.put("config","casa", d.config);
+      toast(`Backup importado: ${d.simulacoes.length} simulação(ões).`); render();
+    }catch{ toast("Arquivo inválido. Use um backup exportado por este sistema."); }
+    ev.target.value = "";
+  }
+});
+document.addEventListener("submit", async ev => {
+  const form = ev.target; ev.preventDefault();
+  if(form.dataset.form==="real"){
+    const sim = State.simulacoes.find(s=>s.id===form.dataset.id); if(!sim) return;
+    const fd = new FormData(form); const real = {pagantes:num(fd.get("pagantes")), cortesias:num(fd.get("cortesias")), receita:num(fd.get("receita")), bar:num(fd.get("bar"))};
+    try{
+      await Store.put("simulacoes", sim.id, {...sim, real, status:"realizado", atualizadoEm:new Date().toISOString()});
+      const e = sim.entrada||{}, C = cfg();
+      if(e.artista && real.pagantes){
+        const a = artistaPorNome(e.artista); const aid = a ? a.id : slug(e.artista);
+        const h = (a && a.historico ? a.historico : []).filter(x=>!(x.fonte==="Mix Arena" && x.data===String(e.data||"").slice(0,7)));
+        h.push({casa:C.nome, cidade:C.cidade, uf:C.uf, data:String(e.data||"").slice(0,7), capacidade:num(C.capacidade), pagantes:real.pagantes, ingresso: real.receita && real.pagantes ? Math.round(real.receita/real.pagantes) : (sim.resultado||{}).p, fonte:"Mix Arena"});
+        await Store.put("artistas", aid, {...(a||{nome:e.artista, genero:e.genero, nivel:e.nivel, nota:e.nota, obs:""}), historico:h, atualizadoEm:new Date().toISOString()});
+      }
+      State.realOpen = null; toast("Resultado registrado. O modelo foi recalibrado."); render();
+    }catch{ toast("Não foi possível salvar o resultado. Tente de novo."); }
+  }
+  if(form.dataset.form==="art"){
+    const d = lerArtForm(form); if(!d.nome){ toast("Informe o nome do artista."); return; }
+    const old = State.artistas.find(x=>x.id===form.dataset.id);
+    const id = old && !old._novo ? old.id : slug(d.nome);
+    try{ await Store.put("artistas", id, {...d, atualizadoEm:new Date().toISOString()}); if(old && old._novo) State.artistas = State.artistas.filter(x=>x!==old); State.artSel = id; toast("Artista salvo."); render(); }
+    catch{ toast("Não foi possível salvar o artista. Tente de novo."); }
+  }
+  if(form.dataset.form==="casa"){
+    const fd = new FormData(form); const c = {};
+    ["nome","cidade","uf"].forEach(k=>c[k]=String(fd.get(k)||"").trim()); c.uf = c.uf.toUpperCase().slice(0,2);
+    ["capacidade","custoCasa","ecad","impostos","gateway","meia","metaLucro"].forEach(k=>c[k]=num(fd.get(k)));
+    c.generos = {}; for(let i=0; fd.has(`g${i}_nome`); i++){ c.generos[fd.get(`g${i}_nome`)] = {aceitacao:num(fd.get(`g${i}_aceitacao`)), preco:num(fd.get(`g${i}_preco`)), elasticidade:num(fd.get(`g${i}_elasticidade`))||1.2, bar:num(fd.get(`g${i}_bar`))}; }
+    if(c.capacidade < 50){ toast("A capacidade precisa ser de pelo menos 50 pessoas."); return; }
+    try{ await Store.put("config","casa",c); toast("Parâmetros salvos."); render(); }catch{ toast("Não foi possível salvar. Tente de novo."); }
+  }
+});
+
+/* ================= inicialização ================= */
+(async function init(){
+  State.view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "painel";
+  render();
+  await Store.init();
+  const rerender = () => { if(State.view==="simulador"){ updateSimOut(); updateArtMatch(); } else render(); };
+  Store.watch("simulacoes", rows => { State.simulacoes = rows; State.loaded.simulacoes = true; rerender(); });
+  Store.watch("artistas", rows => { const novos = State.artistas.filter(a=>a._novo); State.artistas = [...rows, ...novos]; State.loaded.artistas = true; if(State.view!=="artistas") rerender(); else if(!document.activeElement || !document.activeElement.closest("form[data-form='art']")) render(); });
+  Store.watch("config", rows => { const c = rows.find(r=>r.id==="casa"); if(c){ const {id, ...rest} = c; State.config = rest; } State.loaded.config = true; if(State.view!=="casa") rerender(); else render(); });
+  if(window.claude && typeof window.claude.use === "function"){
+    window.claude.use("sample").then(s=>{ State.sample = s; if(State.view==="simulador") updateArtMatch(); }).catch(()=>{});
+    window.claude.use("downloads").then(d=>{ State.downloads = d; }).catch(()=>{});
+  }
+  render();
+})();
+</script>
